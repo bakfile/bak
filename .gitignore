@@ -1,0 +1,9 @@
+# Python stuff
+# (ignore symlink to venv as well as actual venv folder)
+.venv
+.venv/
+*.pyc
+
+# VSCod[e/ium]
+*.vscode*
+*.code-workspace
