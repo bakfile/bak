@@ -4,7 +4,7 @@ import sqlite3
 from rich.console import Console
 from rich.table import Table
 
-# TODO: implement signatures below
+# TODO: #2 implement signatures below
 
 
 def show_bak_list(db_loc: (str, os.path),
@@ -67,3 +67,4 @@ def bak_off_cmd(filename: (None, str, os.path) = None):
     Args:
         filename ([type], optional): [description]. Defaults to None.
     """
+    pass
