@@ -17,3 +17,11 @@ class BakFile():
             self.date_created, \
             self.date_modified = \
             original, bakfile, created, modified
+
+    def export(self):
+        return((
+            self.original_file,
+            self.bakfile_loc,
+            self.date_created,
+            self.date_modified
+        ))

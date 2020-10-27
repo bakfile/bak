@@ -25,17 +25,28 @@ class BakDBHandler():
                 """
                 INSERT INTO bakfiles VALUES
                 (:orig, :bakfile, :created, :modified)
-                """, (bakfile.original_file,
-                      bakfile.bakfile_loc,
-                      bakfile.date_created,
-                      bakfile.date_modified))
-        pass
+                 """, bakfile.export())
 
-    def del_bakfile_entry():
-        pass
+    def del_bakfile_entry(self, filename):
+        with sqlite3.connect(self.db_loc) as db_conn:
+            db_conn.execute(
+                """
+                DELETE FROM bakfiles WHERE original_file=:orig
+                """, (filename,))
 
-    def update_bakfile_entry():
-        pass
+    def update_bakfile_entry(self, bakfile: BakFile):
+        with sqlite3.connect(self.db_loc) as db_conn:
+            db_conn.execute(
+                """
+                DELETE FROM bakfiles WHERE original_file=:orig
+                """, (bakfile.original_file,))
+        self.add_bakfile_entry(bakfile)
 
-    def get_bakfile_entry():
-        pass
+    # TODO handle disambiguation
+    def get_bakfile_entry(self, filename):
+        with sqlite3.connect(self.db_loc) as db_conn:
+            c = db_conn.execute(
+                """
+                    SELECT * FROM bakfiles WHERE original_file=:orig
+                """, (filename,))
+            return BakFile(*c.fetchone())
