@@ -29,8 +29,6 @@ class BakDBHandler():
                 (:orig, :abs, :bakfile, :created, :modified)
                  """, bakfile_obj.export())
             db_conn.commit()
-            os.popen(f'cp {bakfile_obj.original_file} '
-                     f'{bakfile_obj.bakfile_loc}')
 
     def del_bakfile_entry(self, filename):
         with sqlite3.connect(self.db_loc) as db_conn:

@@ -2,6 +2,7 @@ import os
 import sqlite3
 
 from datetime import datetime
+from shutil import copy2
 
 from rich.console import Console
 from rich.table import Table
@@ -11,14 +12,18 @@ from data import bakfile, bak_db
 # TODO: #2 implement signatures below
 # TODO: customizable file extension
 
+bak_dir = os.path.expanduser(os.environ["BAK_DIR"])
+
 
 def _assemble_bakfile(filename):
-    bakfile_name = "".join([filename, ".",
+    bakfile_name = "".join(["/",
+                            filename,
+                            ".",
                             '-'.join(str(
                                 datetime.now().timestamp()).split('.')),
                             ".bak"])
     # TODO get bakfile directory from config
-    bakfile_path = "".join(["~/.bak/bakfiles/", bakfile_name])
+    bakfile_path = bak_dir.rstrip("/") + bakfile_name
 
     new_bak_entry = bakfile.BakFile(filename,
                                     os.path.abspath(filename),
@@ -39,7 +44,7 @@ def show_bak_list(db_loc: (str, os.path),
     pass
 
 
-def create_bakfile(filename: (str, os.path), db_loc: (str, os.path) = None):
+def create_bakfile(filename: (str, os.path), db_handler: bak_db.BakDBHandler = None):
     """ Default command. Roughly equivalent to
             cp filename $XDG_DATA_DIR/.bakfiles/filename.bak
         but inserts relevant metadata into the database.
@@ -48,17 +53,19 @@ def create_bakfile(filename: (str, os.path), db_loc: (str, os.path) = None):
         filename: (str|os.path)
         db_loc: (str|os.path)
     """
-    if not db_loc:
-        db_loc = os.path.expanduser(os.environ["BAK_DB_LOC"])
+    if not db_handler:
+        db = os.path.expanduser(os.environ["BAK_DB_LOC"])
+        db_handler = bak_db.BakDBHandler(db)
     if not os.path.exists(filename):
         # TODO descriptive failure
         return False
-    db = bak_db.BakDBHandler(db_loc)
-    db.create_bakfile_entry(_assemble_bakfile(filename))
+    new_bakfile = _assemble_bakfile(filename)
+    copy2(new_bakfile.original_file, new_bakfile.bakfile_loc)
+    db_handler.create_bakfile_entry(new_bakfile)
     # .format(filename, bakfile_path))
 
 
-def bak_up_cmd(filename: (str, os.path), db_loc: (str, os.path)):
+def bak_up_cmd(filename: (str, os.path), db_handler: (str, os.path)):
     """ Create a .bakfile, replacing the most recent .bakfile of
         `filename`, if one exists
 
@@ -66,12 +73,11 @@ def bak_up_cmd(filename: (str, os.path), db_loc: (str, os.path)):
         filename (str|os.path)
         db_loc (str|os.path)
     """
-    db = bak_db.BakDBHandler(db_loc)
-    db.update_bakfile_entry(_assemble_bakfile(filename))
+    db_handler.update_bakfile_entry(_assemble_bakfile(filename))
 
 
 def bak_down_cmd(filename: (str, os.path),
-                 db_loc: (str, os.path),
+                 db_handler: bak_db.BakDBHandler,
                  keep_bakfile: bool = False):
     """ Restore `filename` from .bakfile. Prompts if ambiguous (such as
         when there are multiple .bakfiles of `filename`)
@@ -81,7 +87,14 @@ def bak_down_cmd(filename: (str, os.path),
         db_loc (str|os.path)
         keep_bakfile (bool): If False, .bakfile is deleted (default: False)
     """
-    pass
+    bakfile_entry = db_handler.get_bakfile_entry(filename)
+    filename = os.path.expanduser(filename)
+
+    os.remove(filename)
+    copy2(bakfile_entry.bakfile_loc, filename)
+    if not keep_bakfile:
+        os.remove(bakfile_entry.bakfile_loc)
+    db_handler.del_bakfile_entry(filename)
 
 
 def bak_off_cmd(filename: (None, str, os.path) = None):
