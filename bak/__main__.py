@@ -20,11 +20,10 @@ def __print_help():
 def bak():
     pass
 
-# Ensures that 'bak --help' is printed if it doesn't get a filename
-
 
 @bak.command()
 @click.argument("filename", required=False)
+# Ensures that 'bak --help' is printed if it doesn't get a filename
 def create(filename):
     if not filename:
         __print_help()
@@ -51,6 +50,18 @@ def bak_down(filename):
         click.echo("A filename or operation is required.\n"
                    "\tbak --help")
     cmd.bak_down_cmd(filename, bakfile_db)
+
+
+@bak.command("off")
+@click.option("--quietly", "-q",
+              is_flag=True,
+              default=False,
+              help="Delete all related .bakfiles without confirming")
+@click.argument("filename", required=True)
+def bak_off(filename, quietly):
+    if not cmd.bak_off_cmd(filename, bakfile_db, quietly):
+        # TODO better output here
+        click.echo("Operation cancelled or failed.")
 
 
 if __name__ == "__main__":
