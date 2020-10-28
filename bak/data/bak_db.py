@@ -48,7 +48,7 @@ class BakDBHandler():
                 """
                 DELETE FROM bakfiles WHERE original_file=:orig
                 """, (bakfile.original_file,))
-        os.popen(f'rm {old_bakfile}')
+            os.remove(old_bakfile)
         self.create_bakfile_entry(bakfile)
 
     # TODO handle disambiguation

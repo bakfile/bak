@@ -62,7 +62,6 @@ def create_bakfile(filename: (str, os.path), db_handler: bak_db.BakDBHandler = N
     new_bakfile = _assemble_bakfile(filename)
     copy2(new_bakfile.original_file, new_bakfile.bakfile_loc)
     db_handler.create_bakfile_entry(new_bakfile)
-    # .format(filename, bakfile_path))
 
 
 def bak_up_cmd(filename: (str, os.path), db_handler: (str, os.path)):
@@ -73,7 +72,9 @@ def bak_up_cmd(filename: (str, os.path), db_handler: (str, os.path)):
         filename (str|os.path)
         db_loc (str|os.path)
     """
-    db_handler.update_bakfile_entry(_assemble_bakfile(filename))
+    new_bakfile = _assemble_bakfile(filename)
+    copy2(new_bakfile.original_file, new_bakfile.bakfile_loc)
+    db_handler.update_bakfile_entry(new_bakfile)
 
 
 def bak_down_cmd(filename: (str, os.path),
