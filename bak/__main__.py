@@ -7,7 +7,8 @@ from click_default_group import DefaultGroup
 import cmd
 import data
 
-bakfile_db = data.bak_db.BakDBHandler(os.environ["BAK_DB_LOC"])
+bakfile_db = data.bak_db.BakDBHandler(os.path.expanduser(
+    os.environ["BAK_DB_LOC"]))
 
 
 def __print_help():
@@ -31,7 +32,7 @@ def create(filename):
         print("File not found: ", filename)
         __print_help()
     else:
-        cmd.create_bakfile(filename, bakfile_db.db_loc)
+        cmd.create_bakfile(filename, bakfile_db)
 
 
 @bak.command("up")
@@ -40,7 +41,16 @@ def bak_up(filename):
     if not filename:
         click.echo("A filename or operation is required.\n"
                    "\tbak --help")
-    cmd.bak_up_cmd(filename, bakfile_db.db_loc)
+    cmd.bak_up_cmd(filename, bakfile_db)
+
+
+@bak.command("down")
+@click.argument("filename", required=True)
+def bak_down(filename):
+    if not filename:
+        click.echo("A filename or operation is required.\n"
+                   "\tbak --help")
+    cmd.bak_down_cmd(filename, bakfile_db)
 
 
 if __name__ == "__main__":
