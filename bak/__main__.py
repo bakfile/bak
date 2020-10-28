@@ -10,22 +10,28 @@ import data
 bakfile_db = data.bak_db.BakDBHandler(os.environ["BAK_DB_LOC"])
 
 
+def __print_help():
+    with click.get_current_context() as ctx:
+        click.echo(bak.get_help(ctx))
+
+
 @click.group(cls=DefaultGroup, default='create', default_if_no_args=True)
-# @click.pass_context
-# @click.argument("filename", required=False)
-# def bak(ctx, filename=None):
 def bak():
     pass
-    # if ctx.invoked_subcommand is None:
-    #     if not filename:
-    #         click.echo("A filename or operation is required.\n"
-    #                    "\tbak --help")
+
+# Ensures that 'bak --help' is printed if it doesn't get a filename
 
 
 @bak.command()
-@click.argument("filename", required=True)
+@click.argument("filename", required=False)
 def create(filename):
-    cmd.create_bakfile(filename, bakfile_db.db_loc)
+    if not filename:
+        __print_help()
+    elif not os.path.exists(filename):
+        print("File not found: ", filename)
+        __print_help()
+    else:
+        cmd.create_bakfile(filename, bakfile_db.db_loc)
 
 
 @bak.command("up")
