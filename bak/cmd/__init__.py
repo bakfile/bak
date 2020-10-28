@@ -4,9 +4,6 @@ import sqlite3
 from datetime import datetime
 from shutil import copy2
 
-from rich.console import Console
-from rich.table import Table
-
 from data import bakfile, bak_db
 
 # TODO: #2 implement signatures below
@@ -98,7 +95,9 @@ def bak_down_cmd(filename: (str, os.path),
     db_handler.del_bakfile_entry(filename)
 
 
-def bak_off_cmd(filename: (None, str, os.path) = None):
+def bak_off_cmd(filename: (None, str, os.path),
+                db_handler: bak_db.BakDBHandler,
+                quietly=False):
     """ Used when finished. Deletes `filename.bak`. Prompts if ambiguous:
             3 .bakfiles detected:
                 1. filename.bak   |   <metadata>
@@ -110,4 +109,13 @@ def bak_off_cmd(filename: (None, str, os.path) = None):
     Args:
         filename ([type], optional): [description]. Defaults to None.
     """
-    pass
+    confirm = input(
+        f"Confirming: Remove .bakfile for {os.path.expanduser(filename)}?"
+        f"(y/N)") if not quietly else True
+    if confirm:
+        bakfile_entry = db_handler.get_bakfile_entry(filename)
+        os.remove(bakfile_entry.bakfile_loc)
+        db_handler.del_bakfile_entry(bakfile_entry.original_file)
+        return True
+    else:
+        return False
