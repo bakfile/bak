@@ -10,7 +10,7 @@ from data import bakfile, bak_db
 # TODO: customizable file extension
 
 try:
-    bak_dir = os.environ["XDG_DATA_HOME"]
+    data_dir = os.environ["XDG_DATA_HOME"]
 except KeyError:
     data_dir = os.path.expanduser("~/.local/share")
 try:
@@ -115,7 +115,7 @@ def bak_off_cmd(filename: (None, str, os.path),
         filename ([type], optional): [description]. Defaults to None.
     """
     confirm = input(
-        f"Confirming: Remove .bakfile for {os.path.expanduser(filename)}?"
+        f"Confirming: Remove .bakfile for {os.path.expanduser(filename)}? "
         f"(y/N) ") if not quietly else True
     if confirm.lower() == 'y':
         bakfile_entry = db_handler.get_bakfile_entry(filename)
