@@ -4,6 +4,8 @@
 .venv/
 *.pyc
 
+.pylintrc
+
 # VSCod[e/ium]
 *.vscode*
 *.code-workspace

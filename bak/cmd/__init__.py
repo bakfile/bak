@@ -9,7 +9,21 @@ from data import bakfile, bak_db
 # TODO: #2 implement signatures below
 # TODO: customizable file extension
 
-bak_dir = os.path.expanduser(os.environ["BAK_DIR"])
+try:
+    data_dir = os.environ["XDG_DATA_HOME"]
+except KeyError:
+    data_dir = os.path.expanduser("~/.local/share")
+try:
+    config_dir = os.environ["XDG_CONFIG_HOME"]
+except KeyError:
+    config_dir = os.path.expanduser("~/.config")
+bak_dir = os.path.join(data_dir, "bak", "bakfiles")
+bak_db_loc = os.path.join(data_dir, "bak", "bak.db")
+
+if not os.path.exists(bak_dir):
+    os.makedirs(bak_dir)
+
+db_handler = bak_db.BakDBHandler(bak_db_loc)
 
 
 def _assemble_bakfile(filename):
@@ -19,7 +33,7 @@ def _assemble_bakfile(filename):
                             '-'.join(str(
                                 datetime.now().timestamp()).split('.')),
                             ".bak"])
-    # TODO get bakfile directory from config
+    # TODO #16 get bakfile directory from config
     bakfile_path = bak_dir.rstrip("/") + bakfile_name
 
     new_bak_entry = bakfile.BakFile(filename,
@@ -30,8 +44,7 @@ def _assemble_bakfile(filename):
     return new_bak_entry
 
 
-def show_bak_list(db_loc: (str, os.path),
-                  filename: (None, str, os.path) = None):
+def show_bak_list(filename: (None, str, os.path) = None):
     """ Prints list of .bakfiles with metadata
 
     Arguments:
@@ -41,18 +54,14 @@ def show_bak_list(db_loc: (str, os.path),
     pass
 
 
-def create_bakfile(filename: (str, os.path), db_handler: bak_db.BakDBHandler = None):
+def create_bakfile(filename: (str, os.path)):
     """ Default command. Roughly equivalent to
             cp filename $XDG_DATA_DIR/.bakfiles/filename.bak
         but inserts relevant metadata into the database.
 
     Arguments:
         filename: (str|os.path)
-        db_loc: (str|os.path)
     """
-    if not db_handler:
-        db = os.path.expanduser(os.environ["BAK_DB_LOC"])
-        db_handler = bak_db.BakDBHandler(db)
     if not os.path.exists(filename):
         # TODO descriptive failure
         return False
@@ -61,13 +70,12 @@ def create_bakfile(filename: (str, os.path), db_handler: bak_db.BakDBHandler = N
     db_handler.create_bakfile_entry(new_bakfile)
 
 
-def bak_up_cmd(filename: (str, os.path), db_handler: (str, os.path)):
+def bak_up_cmd(filename: (str, os.path)):
     """ Create a .bakfile, replacing the most recent .bakfile of
         `filename`, if one exists
 
     Args:
         filename (str|os.path)
-        db_loc (str|os.path)
     """
     new_bakfile = _assemble_bakfile(filename)
     copy2(new_bakfile.original_file, new_bakfile.bakfile_loc)
@@ -75,14 +83,12 @@ def bak_up_cmd(filename: (str, os.path), db_handler: (str, os.path)):
 
 
 def bak_down_cmd(filename: (str, os.path),
-                 db_handler: bak_db.BakDBHandler,
                  keep_bakfile: bool = False):
     """ Restore `filename` from .bakfile. Prompts if ambiguous (such as
         when there are multiple .bakfiles of `filename`)
 
     Args:
         filename (str|os.path)
-        db_loc (str|os.path)
         keep_bakfile (bool): If False, .bakfile is deleted (default: False)
     """
     bakfile_entry = db_handler.get_bakfile_entry(filename)
@@ -96,7 +102,6 @@ def bak_down_cmd(filename: (str, os.path),
 
 
 def bak_off_cmd(filename: (None, str, os.path),
-                db_handler: bak_db.BakDBHandler,
                 quietly=False):
     """ Used when finished. Deletes `filename.bak`. Prompts if ambiguous:
             3 .bakfiles detected:
@@ -110,9 +115,9 @@ def bak_off_cmd(filename: (None, str, os.path),
         filename ([type], optional): [description]. Defaults to None.
     """
     confirm = input(
-        f"Confirming: Remove .bakfile for {os.path.expanduser(filename)}?"
-        f"(y/N)") if not quietly else True
-    if confirm:
+        f"Confirming: Remove .bakfile for {os.path.expanduser(filename)}? "
+        f"(y/N) ") if not quietly else True
+    if confirm.lower() == 'y':
         bakfile_entry = db_handler.get_bakfile_entry(filename)
         os.remove(bakfile_entry.bakfile_loc)
         db_handler.del_bakfile_entry(bakfile_entry.original_file)
