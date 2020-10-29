@@ -31,7 +31,7 @@ def create(filename):
         print("File not found: ", filename)
         __print_help()
     else:
-        cmd.create_bakfile(filename, bakfile_db)
+        cmd.create_bakfile(filename)
 
 
 @bak.command("up")
@@ -40,7 +40,7 @@ def bak_up(filename):
     if not filename:
         click.echo("A filename or operation is required.\n"
                    "\tbak --help")
-    cmd.bak_up_cmd(filename, bakfile_db)
+    cmd.bak_up_cmd(filename)
 
 
 @bak.command("down")
@@ -49,7 +49,7 @@ def bak_down(filename):
     if not filename:
         click.echo("A filename or operation is required.\n"
                    "\tbak --help")
-    cmd.bak_down_cmd(filename, bakfile_db)
+    cmd.bak_down_cmd(filename)
 
 
 @bak.command("off")
@@ -59,7 +59,7 @@ def bak_down(filename):
               help="Delete all related .bakfiles without confirming")
 @click.argument("filename", required=True)
 def bak_off(filename, quietly):
-    if not cmd.bak_off_cmd(filename, bakfile_db, quietly):
+    if not cmd.bak_off_cmd(filename, quietly):
         # TODO better output here
         click.echo("Operation cancelled or failed.")
 
