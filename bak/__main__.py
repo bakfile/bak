@@ -7,9 +7,6 @@ from click_default_group import DefaultGroup
 import cmd
 import data
 
-bakfile_db = data.bak_db.BakDBHandler(os.path.expanduser(
-    os.environ["BAK_DB_LOC"]))
-
 
 def __print_help():
     with click.get_current_context() as ctx:
@@ -27,9 +24,6 @@ def bak():
 def create(filename):
     if not filename:
         __print_help()
-    elif not os.path.exists(filename):
-        print("File not found: ", filename)
-        __print_help()
     else:
         cmd.create_bakfile(filename)
 
@@ -40,16 +34,19 @@ def bak_up(filename):
     if not filename:
         click.echo("A filename or operation is required.\n"
                    "\tbak --help")
-    cmd.bak_up_cmd(filename)
+    if not cmd.bak_up_cmd(filename):
+        # TODO descriptive failures
+        click.echo("An error occurred.")
 
 
 @bak.command("down")
-@click.argument("filename", required=True)
-def bak_down(filename):
+@click.option("--keep", "-k", is_flag=True, default=False, help="Keep .bakfiles")
+@click.argument("filename", required=True, type=click.Path(exists=True))
+def bak_down(filename, keep):
     if not filename:
         click.echo("A filename or operation is required.\n"
                    "\tbak --help")
-    cmd.bak_down_cmd(filename)
+    cmd.bak_down_cmd(filename, keep)
 
 
 @bak.command("off")
