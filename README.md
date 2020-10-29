@@ -11,7 +11,7 @@ The problem, of course, is remembering to delete that file when you're finished.
 **bak**'s goal is simply to obviate this process. Using **bak**, you'll be able to manage your bakfiles with four simple commands:
 
 `bak my_file` - Create a bakfile in a configured location (default: XDG data directory if present, ~/.bak if not  
-`bak up my_file` - Overwrite current `my_file.bak`, rather than creating a second .bakfile. Without file argument, overwrites most recent .bakfile.) 
+`bak up my_file` - Overwrite current `my_file.bak`, rather than creating a second .bakfile. Without file argument, overwrites most recent .bakfile.)  
 `bak down my_file` - Deletes `my_file` and restores it from `my_file.bak`  
 `bak off my_file` - Deletes `my_file.bak`, confirming by default (`bak off -q` to suppress)
 
