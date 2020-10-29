@@ -30,7 +30,7 @@ class BakDBHandler():
                  """, bakfile_obj.export())
             db_conn.commit()
 
-    def del_bakfile_entry(self, filename):
+    def del_bakfile_entry(self, bak_entry: BakFile):
         with sqlite3.connect(self.db_loc) as db_conn:
             db_conn.execute(
                 """
@@ -51,10 +51,10 @@ class BakDBHandler():
         self.create_bakfile_entry(new_bakfile)
 
     # TODO handle disambiguation
-    def get_bakfile_entry(self, filename):
+    def get_bakfile_entries(self, filename):
         with sqlite3.connect(self.db_loc) as db_conn:
             c = db_conn.execute(
                 """
                     SELECT * FROM bakfiles WHERE original_file=:orig
                 """, (filename,))
-            return BakFile(*c.fetchone())
+            return [BakFile(*entry) for entry in c.fetchall()]

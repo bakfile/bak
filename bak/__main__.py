@@ -13,13 +13,16 @@ def __print_help():
         click.echo(bak.get_help(ctx))
 
 
-@click.group(cls=DefaultGroup, default='create', default_if_no_args=True)
+basic_help_text = "bak FILENAME (creates a bakfile)"
+
+
+@click.group(cls=DefaultGroup, default='\0', default_if_no_args=True, help=basic_help_text)
 def bak():
     pass
 
 
-@bak.command()
-@click.argument("filename", required=False)
+@bak.command("\0", hidden=True)
+@click.argument("filename", required=False, type=click.Path(exists=True))
 # Ensures that 'bak --help' is printed if it doesn't get a filename
 def create(filename):
     if not filename:
@@ -29,7 +32,7 @@ def create(filename):
 
 
 @bak.command("up")
-@click.argument("filename", required=True)
+@click.argument("filename", required=True, type=click.Path(exists=True))
 def bak_up(filename):
     if not filename:
         click.echo("A filename or operation is required.\n"
@@ -54,7 +57,7 @@ def bak_down(filename, keep):
               is_flag=True,
               default=False,
               help="Delete all related .bakfiles without confirming")
-@click.argument("filename", required=True)
+@click.argument("filename", required=True, type=click.Path(exists=True))
 def bak_off(filename, quietly):
     if not cmd.bak_off_cmd(filename, quietly):
         # TODO better output here

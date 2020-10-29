@@ -2,7 +2,10 @@ import os
 import sqlite3
 
 from datetime import datetime
+from typing import List
 from shutil import copy2
+
+import click
 
 from data import bakfile, bak_db
 
@@ -90,6 +93,7 @@ def create_bakfile(filename: str):
     Arguments:
         filename: (str|os.path)
     """
+    filename = os.path.expanduser(filename)
     if not os.path.exists(filename):
         # TODO descriptive failure
         return False
@@ -137,7 +141,6 @@ def bak_down_cmd(filename: str,
         filename (str|os.path)
         keep_bakfile (bool): If False, .bakfile is deleted (default: False)
     """
-    bakfile_entry = db_handler.get_bakfile_entry(filename)
     filename = os.path.expanduser(filename)
     bakfile_entries = db_handler.get_bakfile_entries(filename)
 
@@ -175,13 +178,12 @@ def bak_off_cmd(filename: (None, str, os.path),
     Args:
         filename ([type], optional): [description]. Defaults to None.
     """
+    filename = os.path.expanduser(filename)
     confirm = input(
-        f"Confirming: Remove .bakfile for {os.path.expanduser(filename)}? "
-        f"(y/N) ") if not quietly else True
-    if confirm.lower() == 'y':
-        bakfile_entry = db_handler.get_bakfile_entry(filename)
-        os.remove(bakfile_entry.bakfile_loc)
-        db_handler.del_bakfile_entry(bakfile_entry.original_file)
+        f"Confirming: Remove .bakfiles for {os.path.expanduser(filename)}? "
+        f"(y/N) ").lower() == 'y' if not quietly else True
+    if confirm:
+        __remove_bakfiles(db_handler.get_bakfile_entries(filename))
         return True
     else:
         return False
