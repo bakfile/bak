@@ -30,32 +30,31 @@ class BakDBHandler():
                  """, bakfile_obj.export())
             db_conn.commit()
 
-    def del_bakfile_entry(self, filename):
+    def del_bakfile_entry(self, bak_entry: BakFile):
         with sqlite3.connect(self.db_loc) as db_conn:
             db_conn.execute(
                 """
                 DELETE FROM bakfiles WHERE original_file=:orig
-                """, (filename,))
+                """, (bak_entry.original_file,))
+            db_conn.commit()
 
-    def update_bakfile_entry(self, bakfile: BakFile):
+    def update_bakfile_entry(self,
+                             old_bakfile: BakFile,
+                             new_bakfile: BakFile):
         with sqlite3.connect(self.db_loc) as db_conn:
-            cursor = db_conn.cursor()
-            cursor.execute(
-                "SELECT bakfile FROM bakfiles WHERE original_abspath=:orig",
-                (bakfile.orig_abspath,))
-            old_bakfile = cursor.fetchone()[0]
             db_conn.execute(
                 """
-                DELETE FROM bakfiles WHERE original_file=:orig
-                """, (bakfile.original_file,))
-            os.remove(old_bakfile)
-        self.create_bakfile_entry(bakfile)
+                DELETE FROM bakfiles WHERE bakfile=:bakfile_loc
+                """, (old_bakfile.bakfile_loc,))
+            db_conn.commit()
+            os.remove(old_bakfile.bakfile_loc)
+        self.create_bakfile_entry(new_bakfile)
 
     # TODO handle disambiguation
-    def get_bakfile_entry(self, filename):
+    def get_bakfile_entries(self, filename):
         with sqlite3.connect(self.db_loc) as db_conn:
             c = db_conn.execute(
                 """
                     SELECT * FROM bakfiles WHERE original_file=:orig
                 """, (filename,))
-            return BakFile(*c.fetchone())
+            return [BakFile(*entry) for entry in c.fetchall()]
