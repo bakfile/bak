@@ -8,6 +8,7 @@ from shutil import copy2
 import click
 
 from data import bakfile, bak_db
+from typing import List
 
 # TODO: #2 implement signatures below
 # TODO: customizable file extension
@@ -122,7 +123,7 @@ def bak_up_cmd(filename: str):
         _do_select_bakfile(old_bakfile)
     if old_bakfile is None:
         return True
-    elif not isinstance(bakfile.BakFile, old_bakfile):
+    elif not isinstance(old_bakfile, bakfile.BakFile):
         return False
 
     new_bakfile = _assemble_bakfile(filename)
