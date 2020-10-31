@@ -56,5 +56,5 @@ class BakDBHandler():
             c = db_conn.execute(
                 """
                     SELECT * FROM bakfiles WHERE original_file=:orig
-                """, (filename,))
+                """, (os.path.expanduser(filename),))
             return [BakFile(*entry) for entry in c.fetchall()]
