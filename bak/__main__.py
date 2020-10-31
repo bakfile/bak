@@ -13,7 +13,8 @@ def __print_help():
         click.echo(bak.get_help(ctx))
 
 
-basic_help_text = "bak FILENAME (creates a bakfile)"
+basic_help_text = "bak FILENAME (creates a bakfile)\n\n" +\
+    "See also: bak COMMAND --help"
 
 
 @click.group(cls=DefaultGroup, default='\0', default_if_no_args=True, help=basic_help_text)

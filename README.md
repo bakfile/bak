@@ -26,11 +26,13 @@ Don't worry, they're easy to remember after a minute:
 `bak down --keep my_file` - Restores from .bakfile, does not delete .bakfile  
 `bak show my_file` View a .bakfile in $PAGER  
 `bak show --using exec my_file` View a .bakfile using `exec`  (alias `--in`)
+
 examples:
 
         bak show --using cat my_file.json
         bak show --in nvim my_file.json
 `bak get-bak my_file` Get the abspath of a .bakfile, in case, for some reason, you want to pipe it somewhere
+
 example:
 
     bak get-bak my_file.json >> xargs diff my_file.json
@@ -44,21 +46,11 @@ example:
 `bak list my_file` - List all .bakfiles *of the specified file*, with metadata  
 `bak diff my_file <bakfile>` - Self-explanatory. Without .bakfile argument, diffs `my_file` against its most recent .bakfile. By default, uses [ydiff](https://github.com/ymattw/ydiff). Can be configured to use the difftool of your choice.
 
-## Current state
-This is a very pre-alpha version, as in, this is a spaghetti proof-of-concept. Perhaps 5-6 hours have been spent on development so far. As such, it's only "working" in the strictest sense.
+## Current state (updated Oct. 31, 2020)
+This is a very pre-alpha version, as in, this is a spaghetti proof-of-concept. Perhaps ~~5-6~~ 12-15 hours have been spent on development so far. As such, it's only "working" in the strictest sense.
 
-At the moment, **bak** requires two environment variables which it will not set on its own. In the future, this information will be read from user config. These are:
+At the moment, **bak** stores its database and your bakfiles in `$XDG_DATA_HOME/bak`. If `$XDG_DATA_HOME` is not set, its specified default is used, and your stuff ends up in `~/.local/share/bak`.
 
-`$BAK_DB_LOC`: Where to keep the bakfile database (it's tiny.) This will ultimately default either to `~/.bak` or $XDG_DATA_HOME.  
-`$BAK_DIR`: Where to keep the bakfiles themselves. When $BAK_DB_LOC gets a sensible default, this will probably be a subfolder in the same location, such as `~/.bak/bakfiles`.
+If the above sections suggest that a command is implemented, it's working at the most basic level. There are few sanity checks. Expect and please report bugs, as well as feature requests. If you're brave enough to work on a project in the early, mediocre phase, go nuts with the PRs.
 
-Currently, I'd do:
-
-```
-export BAK_DB_LOC=~/.bak
-export BAK_DIR=~/.bak/bakfiles
-```
-
-`bak filename`, `bak up filename`, `bak down filename` and `bak off filename` all work, at the most basic level. There are no sanity checks. If you run `bak filename` more than once, `bak off` and `bak up` will only delete the first, so be careful. This will change.
-
-Also, there's no exception handling yet.
+Also, there's ~~no~~ very little exception handling (yet.)
