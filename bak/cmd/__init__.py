@@ -4,13 +4,14 @@ import sqlite3
 from datetime import datetime
 from typing import List
 from shutil import copy2
+from subprocess import call
+from typing import List
+from warnings import warn
 
 import click
 
 from data import bakfile, bak_db
-from typing import List
 
-# TODO: #2 implement signatures below
 # TODO: customizable file extension
 
 try:
@@ -32,14 +33,16 @@ db_handler = bak_db.BakDBHandler(bak_db_loc)
 
 def _assemble_bakfile(filename):
     time_now = datetime.now()
-    bakfile_name = "".join(["/",
-                            filename,
+    splitname = os.path.split(os.path.abspath(filename))
+    bakfile_name = "".join([".".join(i[1:].replace("/", "-") for i in splitname[:-1]) +
+                            '-' +
+                            splitname[-1],  # [os.path.split(filename)[-1],
                             ".",
                             '-'.join(str(
                                 time_now.timestamp()).split('.')),
                             ".bak"])
-    # TODO #16 get bakfile directory from config
-    bakfile_path = bak_dir.rstrip("/") + bakfile_name
+    # TODO #26 get bakfile directory from config
+    bakfile_path = os.path.join(bak_dir, bakfile_name)
 
     new_bak_entry = bakfile.BakFile(filename,
                                     os.path.abspath(filename),
@@ -49,30 +52,52 @@ def _assemble_bakfile(filename):
     return new_bak_entry
 
 
-def _do_select_bakfile(bakfiles: List[bakfile.BakFile]):
+default_select_prompt = ("Enter a number, or: (V)iew (C)ancel", 'c')
+
+
+def _get_bakfile_entry(filename, select_prompt=default_select_prompt, err=False):
+    entries = db_handler.get_bakfile_entries(filename)
+    if not entries or len(entries) == 0:
+        return None
+    return entries[0] if len(entries) == 1 else _do_select_bakfile(entries, select_prompt, err)
+
+
+def _do_select_bakfile(bakfiles: List[bakfile.BakFile],
+                       select_prompt=default_select_prompt,
+                       err=False):
     click.echo(
-        f"Found {len(bakfiles)} bakfiles for file: {bakfiles[0].orig_abspath}")
-    click.echo("Please select from the following: ")
+        f"Found {len(bakfiles)} bakfiles for file: {bakfiles[0].orig_abspath}", err=err)
+    click.echo("Please select from the following: ", err=err)
     _range = range(len(bakfiles))
     for i in _range:
         click.echo(
-            f"{i + 1}: .bakfile last modified at {bakfiles[i].date_modified}")
-    choice = click.prompt(
-        # TODO add diff and print as choices here
-        "Enter a number, or: (C)ancel", default='c')
-    if choice.lower() != "c":
+            f"{i + 1}: .bakfile last modified at {bakfiles[i].date_modified}", err=err)
+    choice = click.prompt(*select_prompt, err=err)
+    # TODO add diff and print as choices here
+    # "Enter a number, or: (V)iew (C)ancel", default='c').lower()
+    if choice != "c":
+        view = False
         try:
-            choice = int(choice) - 1
-            if choice not in _range:
-                click.echo("Invalid selection. Aborting.")
+            if choice == "v":
+                idx = int(click.prompt("View which .bakfile?", err=err)) - 1
+                # idx = int(click.prompt("View which .bakfile? (#)")) - 1
+                view = True
+            else:
+                idx = int(choice) - 1
+            if idx not in _range:
+                click.echo("Invalid selection. Aborting.", err=err)
                 return None
             else:
-                return bakfiles[choice]
-        except (ValueError, TypeError):
-            click.echo("Invalid selection. Aborting.")
+                if view:
+                    bak_print_cmd(bakfiles[idx])
+                    return
+                return bakfiles[idx]
+        except (ValueError, TypeError) as e:
+            warn(e)
+            click.echo("Invalid input. Aborting.", err=err)
             return None
     else:
-        click.echo("Aborting.")
+        click.echo("Aborting.", err=err)
         return None
 
 
@@ -175,16 +200,44 @@ def bak_off_cmd(filename: (None, str, os.path),
                 3. filename.bak.2 |   <metadata>
             Delete:
                 (A)ll, (1,2,3), (N)one, (C)ancel
-
+        NOTE: that output isn't implemented yet, but it does offer decent
+              options when disambiguation is required
     Args:
         filename ([type], optional): [description]. Defaults to None.
     """
     filename = os.path.expanduser(filename)
+    bakfiles = db_handler.get_bakfile_entries(filename)
+    if not bakfiles:
+        click.echo(f"No bakfiles found for {filename}")
     confirm = input(
-        f"Confirming: Remove .bakfiles for {os.path.expanduser(filename)}? "
+        f"Confirming: Remove {len(bakfiles)} .bakfiles for {filename}? "
         f"(y/N) ").lower() == 'y' if not quietly else True
     if confirm:
         __remove_bakfiles(db_handler.get_bakfile_entries(filename))
         return True
     else:
         return False
+
+
+def bak_print_cmd(bak_to_print: (str, bakfile.BakFile), using: (str, None) = None):
+    if not isinstance(bak_to_print, bakfile.BakFile):
+        bak_to_print = _get_bakfile_entry(bak_to_print,
+                                          select_prompt=("View which .bakfile? (#)", "c"))
+        if not isinstance(bak_to_print, bakfile.BakFile):
+            return  # _get_bakfile_entry() handles failures, so just exit here
+    if using:
+        pager = using
+    else:
+        try:
+            pager = os.environ['PAGER']
+        except KeyError:
+            pager = 'less'
+    call([pager, bak_to_print.bakfile_loc])
+
+
+def bak_getfile_cmd(bak_to_get: (str, bakfile.BakFile)):
+    if not isinstance(bak_to_get, bakfile.BakFile):
+        bak_to_get = _get_bakfile_entry(bak_to_get, err=True)
+        if not bak_to_get:
+            return  # _get_bakfile_entry() handles failures, so just exit
+        click.echo(bak_to_get.bakfile_loc)

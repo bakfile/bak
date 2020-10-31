@@ -31,7 +31,7 @@ def create(filename):
         cmd.create_bakfile(filename)
 
 
-@bak.command("up")
+@bak.command("up", help="Replace a .bakfile with a fresh copy of the parent file")
 @click.argument("filename", required=True, type=click.Path(exists=True))
 def bak_up(filename):
     if not filename:
@@ -42,7 +42,7 @@ def bak_up(filename):
         click.echo("An error occurred.")
 
 
-@bak.command("down")
+@bak.command("down", help="Restore from a .bakfile (.bakfiles deleted without '--keep')")
 @click.option("--keep", "-k", is_flag=True, default=False, help="Keep .bakfiles")
 @click.argument("filename", required=True, type=click.Path(exists=True))
 def bak_down(filename, keep):
@@ -52,7 +52,7 @@ def bak_down(filename, keep):
     cmd.bak_down_cmd(filename, keep)
 
 
-@bak.command("off")
+@bak.command("off", help="Use when finished to delete .bakfiles")
 @click.option("--quietly", "-q",
               is_flag=True,
               default=False,
@@ -62,6 +62,24 @@ def bak_off(filename, quietly):
     if not cmd.bak_off_cmd(filename, quietly):
         # TODO better output here
         click.echo("Operation cancelled or failed.")
+
+
+@bak.command("show", help="View a .bakfile in an external program")
+@click.option("--using", "--in", help="Program to open (default: $PAGER or less)", required=False)
+@click.argument("filename", required=True, type=click.Path(exists=True))
+def bak_print(filename, using):
+    cmd.bak_print_cmd(filename, using)
+
+
+@bak.command("get-bak",
+             help="Outputs the real path of a .bakfile. "
+             "Useful for piping, and not much else.",
+             short_help="Output the real path of a .bakfile")
+@click.argument("to_where_you_once_belonged",
+                required=True,
+                type=click.Path(exists=True))
+def bak_get(to_where_you_once_belonged):
+    cmd.bak_getfile_cmd(to_where_you_once_belonged)
 
 
 if __name__ == "__main__":
