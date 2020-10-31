@@ -40,7 +40,7 @@ def _assemble_bakfile(filename):
                             ".",
                             '-'.join(str(
                                 time_now.timestamp()).split('.')),
-                            ".bak"])
+                            ".bak"]).replace(" ", "-")
     # TODO #26 get bakfile directory from config
     bakfile_path = os.path.join(bak_dir, bakfile_name)
 
