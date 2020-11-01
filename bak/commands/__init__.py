@@ -10,7 +10,7 @@ from warnings import warn
 
 import click
 
-from data import bakfile, bak_db
+from bak.data import bakfile, bak_db
 
 # TODO: customizable file extension
 
@@ -31,9 +31,13 @@ if not os.path.exists(bak_dir):
 db_handler = bak_db.BakDBHandler(bak_db_loc)
 
 
+def expandpath(i_path):
+    return os.path.abspath(os.path.expanduser(i_path))
+
+
 def _assemble_bakfile(filename):
     time_now = datetime.now()
-    splitname = os.path.split(os.path.abspath(filename))
+    splitname = os.path.split(expandpath(filename))
     bakfile_name = "".join([".".join(i[1:].replace("/", "-") for i in splitname[:-1]) +
                             '-' +
                             splitname[-1],  # [os.path.split(filename)[-1],
@@ -119,7 +123,7 @@ def create_bakfile(filename: str):
     Arguments:
         filename: (str|os.path)
     """
-    filename = os.path.expanduser(filename)
+    filename = expandpath(filename)
     if not os.path.exists(filename):
         # TODO descriptive failure
         return False
@@ -138,7 +142,7 @@ def bak_up_cmd(filename: str):
     # Return Truthy things for failures that echo their own output,
     # false for nonspecific or generic failures
 
-    filename = os.path.expanduser(filename)
+    filename = expandpath(filename)
     old_bakfile = db_handler.get_bakfile_entries(filename)
     if not old_bakfile:
         click.echo(f"No bakfile found for {filename}")
@@ -167,7 +171,7 @@ def bak_down_cmd(filename: str,
         filename (str|os.path)
         keep_bakfile (bool): If False, .bakfile is deleted (default: False)
     """
-    filename = os.path.expanduser(filename)
+    filename = expandpath(filename)
     bakfile_entries = db_handler.get_bakfile_entries(filename)
 
     # TODO still only pulling first result
@@ -205,7 +209,7 @@ def bak_off_cmd(filename: (None, str, os.path),
     Args:
         filename ([type], optional): [description]. Defaults to None.
     """
-    filename = os.path.expanduser(filename)
+    filename = expandpath(filename)
     bakfiles = db_handler.get_bakfile_entries(filename)
     if not bakfiles:
         click.echo(f"No bakfiles found for {filename}")

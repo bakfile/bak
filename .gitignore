@@ -4,6 +4,10 @@
 .venv/
 *.pyc
 
+*.egg*
+build/
+dist/
+
 .pylintrc
 
 # VSCod[e/ium]
