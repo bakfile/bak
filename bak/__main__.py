@@ -4,8 +4,9 @@ from datetime import datetime
 import click
 from click_default_group import DefaultGroup
 
-import cmd
-import data
+from . import commands
+# from . import data
+# # import data
 
 
 def __print_help():
@@ -29,7 +30,7 @@ def create(filename):
     if not filename:
         __print_help()
     else:
-        cmd.create_bakfile(filename)
+        commands.create_bakfile(filename)
 
 
 @bak.command("up", help="Replace a .bakfile with a fresh copy of the parent file")
@@ -38,7 +39,7 @@ def bak_up(filename):
     if not filename:
         click.echo("A filename or operation is required.\n"
                    "\tbak --help")
-    if not cmd.bak_up_cmd(filename):
+    if not commands.bak_up_cmd(filename):
         # TODO descriptive failures
         click.echo("An error occurred.")
 
@@ -50,7 +51,7 @@ def bak_down(filename, keep):
     if not filename:
         click.echo("A filename or operation is required.\n"
                    "\tbak --help")
-    cmd.bak_down_cmd(filename, keep)
+    commands.bak_down_cmd(filename, keep)
 
 
 @bak.command("off", help="Use when finished to delete .bakfiles")
@@ -60,7 +61,7 @@ def bak_down(filename, keep):
               help="Delete all related .bakfiles without confirming")
 @click.argument("filename", required=True, type=click.Path(exists=True))
 def bak_off(filename, quietly):
-    if not cmd.bak_off_cmd(filename, quietly):
+    if not commands.bak_off_cmd(filename, quietly):
         # TODO better output here
         click.echo("Operation cancelled or failed.")
 
@@ -69,7 +70,7 @@ def bak_off(filename, quietly):
 @click.option("--using", "--in", help="Program to open (default: $PAGER or less)", required=False)
 @click.argument("filename", required=True, type=click.Path(exists=True))
 def bak_print(filename, using):
-    cmd.bak_print_cmd(filename, using)
+    commands.bak_print_cmd(filename, using)
 
 
 @bak.command("get-bak",
@@ -80,7 +81,7 @@ def bak_print(filename, using):
                 required=True,
                 type=click.Path(exists=True))
 def bak_get(to_where_you_once_belonged):
-    cmd.bak_getfile_cmd(to_where_you_once_belonged)
+    commands.bak_getfile_cmd(to_where_you_once_belonged)
 
 
 if __name__ == "__main__":
