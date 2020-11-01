@@ -2,8 +2,7 @@ from setuptools import setup, find_packages
 
 require = ['click==7.1.2',
            'click-default-group==1.2.2',
-           'rich==9.1.0',
-           'ydiff==1.2']
+           'rich==9.1.0']
 
 setup(name='bak',
       version='0.0.1a',
