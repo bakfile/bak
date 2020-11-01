@@ -5,8 +5,6 @@ import click
 from click_default_group import DefaultGroup
 
 from . import commands
-# from . import data
-# # import data
 
 
 def __print_help():
@@ -82,6 +80,12 @@ def bak_print(filename, using):
                 type=click.Path(exists=True))
 def bak_get(to_where_you_once_belonged):
     commands.bak_getfile_cmd(to_where_you_once_belonged)
+
+
+@bak.command("diff")
+@click.argument("filename", required=True, type=click.Path(exists=True))
+def bak_diff(filename):
+    commands.bak_diff_cmd(filename)
 
 
 if __name__ == "__main__":

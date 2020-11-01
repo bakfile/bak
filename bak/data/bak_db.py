@@ -34,8 +34,8 @@ class BakDBHandler():
         with sqlite3.connect(self.db_loc) as db_conn:
             db_conn.execute(
                 """
-                DELETE FROM bakfiles WHERE original_file=:orig
-                """, (bak_entry.original_file,))
+                DELETE FROM bakfiles WHERE original_abspath=:orig
+                """, (bak_entry.orig_abspath,))
             db_conn.commit()
 
     def update_bakfile_entry(self,

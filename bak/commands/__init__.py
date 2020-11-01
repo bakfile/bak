@@ -48,7 +48,7 @@ def _assemble_bakfile(filename):
     # TODO #26 get bakfile directory from config
     bakfile_path = os.path.join(bak_dir, bakfile_name)
 
-    new_bak_entry = bakfile.BakFile(filename,
+    new_bak_entry = bakfile.BakFile(os.path.basename(filename),
                                     os.path.abspath(filename),
                                     bakfile_path,
                                     time_now,
@@ -60,7 +60,7 @@ default_select_prompt = ("Enter a number, or: (V)iew (C)ancel", 'c')
 
 
 def _get_bakfile_entry(filename, select_prompt=default_select_prompt, err=False):
-    entries = db_handler.get_bakfile_entries(filename)
+    entries = db_handler.get_bakfile_entries(expandpath(filename))
     if not entries or len(entries) == 0:
         return None
     return entries[0] if len(entries) == 1 else _do_select_bakfile(entries, select_prompt, err)
@@ -128,7 +128,7 @@ def create_bakfile(filename: str):
         # TODO descriptive failure
         return False
     new_bakfile = _assemble_bakfile(filename)
-    copy2(new_bakfile.original_file, new_bakfile.bakfile_loc)
+    copy2(new_bakfile.orig_abspath, new_bakfile.bakfile_loc)
     db_handler.create_bakfile_entry(new_bakfile)
 
 
@@ -245,3 +245,9 @@ def bak_getfile_cmd(bak_to_get: (str, bakfile.BakFile)):
         if not bak_to_get:
             return  # _get_bakfile_entry() handles failures, so just exit
         click.echo(bak_to_get.bakfile_loc)
+
+
+def bak_diff_cmd(filename):
+    # TODO configurable diff executable
+    bak_to_diff = _get_bakfile_entry(expandpath(filename))
+    call(['diff', bak_to_diff.bakfile_loc, bak_to_diff.orig_abspath])

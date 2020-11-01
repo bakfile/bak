@@ -24,6 +24,7 @@ Don't worry, they're easy to remember after a minute:
 
 ## Additional commands and flags
 `bak down --keep my_file` - Restores from .bakfile, does not delete .bakfile  
+`bak diff my_file` Compare a .bakfile using `diff` (will become configurable)
 `bak show my_file` View a .bakfile in $PAGER  
 `bak show --using exec my_file` View a .bakfile using `exec`  (alias `--in`)
 
@@ -44,7 +45,6 @@ example:
 
 `bak list` - List all .bakfiles, with a bit of metadata to help with disambiguation  
 `bak list my_file` - List all .bakfiles *of the specified file*, with metadata  
-`bak diff my_file <bakfile>` - Self-explanatory. Without .bakfile argument, diffs `my_file` against its most recent .bakfile. By default, uses [ydiff](https://github.com/ymattw/ydiff). Can be configured to use the difftool of your choice.
 
 ## Current state (updated Oct. 31, 2020)
 This is a very pre-alpha version, as in, this is a spaghetti proof-of-concept. Perhaps ~~5-6~~ 12-15 hours have been spent on development so far. As such, it's only "working" in the strictest sense.
