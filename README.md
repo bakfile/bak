@@ -22,6 +22,8 @@ Don't worry, they're easy to remember after a minute:
 `bak down`: I've screwed up, undo the damage.  
 `bak off`: I'm done working. Go away, **bak**, and take your .bakfile with you.
 
+All of **bak**'s commands will disambiguate between multiple copies of the same file. In other words, you can `bak my_thing.txt` as many times as you want, until you're finished working, if you'd prefer to keep multiples instead of using `bak up`. At the moment, all you've got to go by are timestamps when it asks you to pick a .bakfile, but this will improve.
+
 ## Additional commands and flags
 `bak down --keep my_file` - Restores from .bakfile, does not delete .bakfile  
 `bak diff my_file` Compare a .bakfile using `diff` (will become configurable)  
@@ -34,11 +36,9 @@ examples:
         bak show --in nvim my_file.json
 `bak get-bak my_file` Get the abspath of a .bakfile, in case, for some reason, you want to pipe it somewhere
 
-example:
+example (for illustrative purposes; use 'bak diff' instead):
 
-    bak get-bak my_file.json >> xargs diff my_file.json
-    (will be useless once 'bak diff' is implemented, but
-     whatever.)
+    diff $(bak get-bak my_file.json) my_file.json
 
 ## Advanced features (Not yet implemented as of Oct. 28, 2020)
 **bak** is also slated to support a number of flags, as well as rich output, such as:
