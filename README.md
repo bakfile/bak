@@ -24,7 +24,7 @@ Don't worry, they're easy to remember after a minute:
 
 ## Additional commands and flags
 `bak down --keep my_file` - Restores from .bakfile, does not delete .bakfile  
-`bak diff my_file` Compare a .bakfile using `diff` (will become configurable)
+`bak diff my_file` Compare a .bakfile using `diff` (will become configurable)  
 `bak show my_file` View a .bakfile in $PAGER  
 `bak show --using exec my_file` View a .bakfile using `exec`  (alias `--in`)
 
