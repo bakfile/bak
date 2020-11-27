@@ -247,7 +247,8 @@ def bak_getfile_cmd(bak_to_get: (str, bakfile.BakFile)):
         click.echo(bak_to_get.bakfile_loc)
 
 
-def bak_diff_cmd(filename):
-    # TODO configurable diff executable
+def bak_diff_cmd(filename, command='diff'):
+    # TODO write tests for this (mildly tricky)
     bak_to_diff = _get_bakfile_entry(expandpath(filename))
-    call(['diff', bak_to_diff.bakfile_loc, bak_to_diff.orig_abspath])
+    call([command if command else 'diff',
+          bak_to_diff.bakfile_loc, bak_to_diff.orig_abspath])

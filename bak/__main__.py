@@ -65,7 +65,9 @@ def bak_off(filename, quietly):
 
 
 @bak.command("show", help="View a .bakfile in an external program")
-@click.option("--using", "--in", help="Program to open (default: $PAGER or less)", required=False)
+@click.option("--using", "--in",
+              help="Program to open (default: $PAGER or less)",
+              required=False)
 @click.argument("filename", required=True, type=click.Path(exists=True))
 def bak_print(filename, using):
     commands.bak_print_cmd(filename, using)
@@ -83,9 +85,12 @@ def bak_get(to_where_you_once_belonged):
 
 
 @bak.command("diff")
+@click.option("--using", "--in",
+              help="Program to use instead of system diff",
+              required=False)
 @click.argument("filename", required=True, type=click.Path(exists=True))
-def bak_diff(filename):
-    commands.bak_diff_cmd(filename)
+def bak_diff(filename, using):
+    commands.bak_diff_cmd(filename, command=using)
 
 
 if __name__ == "__main__":
