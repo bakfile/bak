@@ -4,7 +4,7 @@ from datetime import datetime
 import click
 from click_default_group import DefaultGroup
 
-from . import commands
+from bak import commands
 
 
 def __print_help():
