@@ -169,14 +169,14 @@ def bak_up_cmd(filename: str):
     old_bakfile = old_bakfile[0] if len(old_bakfile) == 1 else \
         _do_select_bakfile(old_bakfile)
     if old_bakfile is None:
+        click.echo("Cancelled.")
         return True
     elif not isinstance(old_bakfile, bakfile.BakFile):
         return False
 
-    new_bakfile = _assemble_bakfile(filename)
-    new_bakfile.date_created = old_bakfile.date_created
-    copy2(new_bakfile.original_file, new_bakfile.bakfile_loc)
-    db_handler.update_bakfile_entry(old_bakfile, new_bakfile)
+    old_bakfile.date_modified = datetime.now()
+    copy2(old_bakfile.original_file, old_bakfile.bakfile_loc)
+    db_handler.update_bakfile_entry(old_bakfile)
     return True
 
 
@@ -203,11 +203,14 @@ def bak_down_cmd(filename: str,
         click.echo(f"No bakfiles found for {filename}")
         return
 
-    confirm_prompt = f"Confirm: Restore {filename} and erase bakfiles?\n" \
-                     if not keep_bakfile else \
-                     f"Confirm: Restore {filename} and keep bakfiles?\n"
-    confirm_prompt += "(y/n)"
-    confirm = click.prompt(confirm_prompt, default='y')
+    if quiet:
+        confirm = 'y'
+    else:
+        confirm_prompt = f"Confirm: Restore {filename} and erase bakfiles?\n" \
+            if not keep_bakfile else \
+            f"Confirm: Restore {filename} and keep bakfiles?\n"
+        confirm_prompt += "(y/n)"
+        confirm = click.prompt(confirm_prompt, default='n')
     if confirm.lower()[0] != 'y':
         click.echo("Cancelled.")
         return
@@ -262,14 +265,10 @@ def bak_print_cmd(bak_to_print: (str, bakfile.BakFile), using: (str, None) = Non
             click.echo(f"No bakfiles found for {os.path.abspath(filename)}")
         if not isinstance(bak_to_print, bakfile.BakFile):
             return  # _get_bakfile_entry() handles failures, so just exit here
-    if using:
-        pager = using
-    else:
-        # try:
-        pager = (cfg['bak_show_exec'] or os.environ['PAGER']) or 'less'
-        # except KeyError:
-        #     pager = 'less'
-    call([pager, bak_to_print.bakfile_loc])
+    pager = using if using else \
+        (cfg['bak_show_exec'] or os.environ['PAGER']) or 'less'
+    pager = pager.strip('"').strip("'").split(" ")
+    call(pager + [bak_to_print.bakfile_loc])
 
 
 def bak_getfile_cmd(bak_to_get: (str, bakfile.BakFile)):
@@ -291,5 +290,6 @@ def bak_diff_cmd(filename: str, command='diff'):
     if not bak_to_diff:
         click.echo(f"No bakfiles found for {os.path.abspath(filename)}")
         return
-    call([command,
-          bak_to_diff.bakfile_loc, bak_to_diff.orig_abspath])
+    command = command.strip('"').strip("'").split(" ")
+    call(command +
+         [bak_to_diff.bakfile_loc, bak_to_diff.orig_abspath])

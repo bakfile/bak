@@ -40,15 +40,18 @@ class BakDBHandler():
 
     def update_bakfile_entry(self,
                              old_bakfile: BakFile,
-                             new_bakfile: BakFile):
+                             new_bakfile: (BakFile, None) = None):
         with sqlite3.connect(self.db_loc) as db_conn:
             db_conn.execute(
                 """
                 DELETE FROM bakfiles WHERE bakfile=:bakfile_loc
                 """, (old_bakfile.bakfile_loc,))
             db_conn.commit()
-            os.remove(old_bakfile.bakfile_loc)
-        self.create_bakfile_entry(new_bakfile)
+            if new_bakfile:
+                os.remove(old_bakfile.bakfile_loc)
+                self.create_bakfile_entry(new_bakfile)
+            else:
+                self.create_bakfile_entry(old_bakfile)
 
     # TODO handle disambiguation
     def get_bakfile_entries(self, filename):

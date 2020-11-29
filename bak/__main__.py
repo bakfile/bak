@@ -43,13 +43,20 @@ def bak_up(filename):
 
 
 @bak.command("down", help="Restore from a .bakfile (.bakfiles deleted without '--keep')")
-@click.option("--keep", "-k", is_flag=True, default=False, help="Keep .bakfiles")
+@click.option("--keep", "-k",
+              is_flag=True,
+              default=False,
+              help="Keep .bakfiles")
+@click.option("--quietly", "-q",
+              is_flag=True,
+              default=False,
+              help="No confirmation prompt")
 @click.argument("filename", required=True, type=click.Path(exists=True))
-def bak_down(filename, keep):
+def bak_down(filename, keep, quietly):
     if not filename:
         click.echo("A filename or operation is required.\n"
                    "\tbak --help")
-    commands.bak_down_cmd(filename, keep)
+    commands.bak_down_cmd(filename, keep, quietly)
 
 
 @bak.command("off", help="Use when finished to delete .bakfiles")
