@@ -27,7 +27,8 @@ except KeyError:
 config_file = os.path.join(config_dir, 'bak.cfg')
 cfg = Config(config_file)
 
-bak_dir = cfg['bakfile_location'] or os.path.join(data_dir, "bak", "bakfiles")
+bak_dir = cfg['bakfile_location'] or os.path.join(data_dir,
+                                                  "bak", "bakfiles")
 bak_db_loc = cfg['bak_database_location'] or \
     os.path.join(data_dir, "bak", "bak.db")
 
@@ -44,7 +45,8 @@ def expandpath(i_path):
 def _assemble_bakfile(filename):
     time_now = datetime.now()
     splitname = os.path.split(expandpath(filename))
-    bakfile_name = "".join([".".join(i[1:].replace("/", "-") for i in splitname[:-1]) +
+    bakfile_name = "".join([".".join(i[1:].replace("/", "-")
+                                     for i in splitname[:-1]) +
                             '-' +
                             splitname[-1],
                             ".",
@@ -64,23 +66,30 @@ def _assemble_bakfile(filename):
 default_select_prompt = ("Enter a number, or: (V)iew (D)iff (C)ancel", 'c')
 
 
-def _get_bakfile_entry(filename, select_prompt=default_select_prompt, err=False):
+def _get_bakfile_entry(filename,
+                       select_prompt=default_select_prompt,
+                       err=False):
     entries = db_handler.get_bakfile_entries(expandpath(filename))
     if not entries or len(entries) == 0:
         return None
-    return entries[0] if len(entries) == 1 else _do_select_bakfile(entries, select_prompt, err)
+    # If there's only one bakfile corresponding to filename, return that.
+    # If there's more than one, disambiguate.
+    return entries[0] if len(entries) == 1 else \
+        _do_select_bakfile(entries, select_prompt, err)
 
 
 def _do_select_bakfile(bakfiles: List[bakfile.BakFile],
                        select_prompt=default_select_prompt,
                        err=False):
     click.echo(
-        f"Found {len(bakfiles)} bakfiles for file: {bakfiles[0].orig_abspath}", err=err)
+        f"Found {len(bakfiles)} bakfiles for file: {bakfiles[0].orig_abspath}",
+        err=err)
     click.echo("Please select from the following: ", err=err)
     _range = range(len(bakfiles))
     for i in _range:
         click.echo(
-            f"{i + 1}: .bakfile last modified at {bakfiles[i].date_modified}", err=err)
+            f"{i + 1}: .bakfile last modified at {bakfiles[i].date_modified}",
+            err=err)
 
     def get_choice():
         return click.prompt(*select_prompt, err=err).lower()
@@ -214,11 +223,15 @@ def bak_down_cmd(filename: str,
     if confirm.lower()[0] != 'y':
         click.echo("Cancelled.")
         return
-    os.remove(filename)
-    copy2(bakfile_entry.bakfile_loc, filename)
+    # os.remove(filename)
+    # copy2(bakfile_entry.bakfile_loc, filename)
     if not keep_bakfile:
+        os.rename(bakfile_entry.bakfile_loc, filename)
         for entry in bakfile_entries:
-            os.remove(entry.bakfile_loc)
+            # bakfile_entry's bakfile has already been moved
+            # trying to rm it would print a failure
+            if entry != bakfile_entry:
+                os.remove(entry.bakfile_loc)
             db_handler.del_bakfile_entry(entry)
 
 
@@ -257,12 +270,20 @@ def bak_off_cmd(filename: (None, str, os.path),
         return False
 
 
-def bak_print_cmd(bak_to_print: (str, bakfile.BakFile), using: (str, None) = None):
+def bak_print_cmd(bak_to_print: (str, bakfile.BakFile),
+                  using: (str, None) = None):
+    # if this thing is given a string, it needs to go find
+    # a corresponding bakfile
     if not isinstance(bak_to_print, bakfile.BakFile):
-        bak_to_print = _get_bakfile_entry(bak_to_print,
-                                          select_prompt=("View which .bakfile? (#)", "c"))
-        if not bak_to_print:
-            click.echo(f"No bakfiles found for {os.path.abspath(filename)}")
+        _bak_to_print = _get_bakfile_entry(bak_to_print,
+                                           select_prompt=(
+                                               "View which .bakfile? (#)",
+                                               "c"))
+        if not _bak_to_print:
+            click.echo(
+                f"No bakfiles found for {os.path.abspath(bak_to_print)}")
+        else:
+            bak_to_print = _bak_to_print
         if not isinstance(bak_to_print, bakfile.BakFile):
             return  # _get_bakfile_entry() handles failures, so just exit here
     pager = using if using else \
@@ -283,8 +304,8 @@ def bak_getfile_cmd(bak_to_get: (str, bakfile.BakFile)):
 
 def bak_diff_cmd(filename: str, command='diff'):
     # TODO write tests for this (mildly tricky)
-    bak_to_diff = filename if isinstance(
-        filename, bakfile.BakFile) else _get_bakfile_entry(expandpath(filename))
+    bak_to_diff = filename if isinstance(filename, bakfile.BakFile) else \
+        _get_bakfile_entry(expandpath(filename))
     if not command:
         command = cfg['bak_diff_exec'] or 'diff'
     if not bak_to_diff:
