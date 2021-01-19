@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import List
 from shutil import copy2
 from subprocess import call
+from sys import stderr, stdout
 from typing import List
 from warnings import warn
 
@@ -86,15 +87,14 @@ def _get_bakfile_entry(filename,
 def _do_select_bakfile(bakfiles: List[bakfile.BakFile],
                        select_prompt=default_select_prompt,
                        err=False):
-    click.echo(
-        f"Found {len(bakfiles)} bakfiles for file: {bakfiles[0].orig_abspath}",
-        err=err)
-    click.echo("Please select from the following: ", err=err)
+    console = Console(file=stderr if err else stdout)
+    console.print(
+        f"Found {len(bakfiles)} bakfiles for file: {bakfiles[0].orig_abspath}")
+    console.print("Please select from the following: ")
     _range = range(len(bakfiles))
     for i in _range:
-        click.echo(
-            f"{i + 1}: .bakfile last modified at {bakfiles[i].date_modified}",
-            err=err)
+        console.print(
+            f"{i + 1}: .bakfile last modified at {bakfiles[i].date_modified}")
 
     def get_choice():
         return click.prompt(*select_prompt, err=err).lower()
@@ -102,8 +102,8 @@ def _do_select_bakfile(bakfiles: List[bakfile.BakFile],
 
     while True:
         if choice == "c":
-            click.echo("Cancelled.", err=err)
-            return None
+            console.print("Cancelled.")
+            return False
         else:
             view = False
             try:
@@ -120,7 +120,7 @@ def _do_select_bakfile(bakfiles: List[bakfile.BakFile],
                 else:
                     idx = int(choice) - 1
                 if idx not in _range:
-                    click.echo("Invalid selection. Aborting.", err=err)
+                    console.print("Invalid selection. Aborting.")
                     return None
                 elif view:
                     bak_print_cmd(bakfiles[idx])
@@ -130,8 +130,8 @@ def _do_select_bakfile(bakfiles: List[bakfile.BakFile],
                     return bakfiles[idx]
             except (ValueError, TypeError) as e:
                 warn(e)
-                click.echo("Invalid input. Aborting.", err=err)
-                return None
+                console.print("Invalid input. Aborting.")
+                return False
             get_choice()
 
 
@@ -148,6 +148,13 @@ def show_bak_list(filename: (None, str, os.path) = None,
     bakfiles = db_handler.get_bakfile_entries(filename) if filename else \
                 db_handler.get_all_entries()
 
+    console = Console()
+    if bakfiles == []:
+        console.print(f"No .bakfiles found for "
+                      f"{os.path.abspath(os.path.expanduser(filename))}" if \
+                        filename else "No .bakfiles found")
+        return
+    
     _title = f".bakfiles of {os.path.abspath(os.path.expanduser(filename))}" if \
                 filename else ".bakfiles"
 
@@ -157,6 +164,7 @@ def show_bak_list(filename: (None, str, os.path) = None,
     table.add_column("Date Created")
     table.add_column("Last Modified")
 
+
     for _bakfile in bakfiles:
         table.add_row((os.path.relpath(_bakfile.original_file)) if \
                       relative_paths else \
@@ -164,7 +172,6 @@ def show_bak_list(filename: (None, str, os.path) = None,
                       _bakfile.date_created,
                       _bakfile.date_modified)
         
-    console = Console()
     console.print(table)
 
 def create_bakfile(filename: str):
@@ -196,16 +203,18 @@ def bak_up_cmd(filename: str):
     # Put differently, False is for complete failures. If this function
     # handles a failure gracefully, it should return True.
 
+    console = Console()
+
     filename = expandpath(filename)
     old_bakfile = db_handler.get_bakfile_entries(filename)
-    if not old_bakfile:
-        click.echo(f"No bakfile found for {filename}")
+    if old_bakfile == None:
+        console.print(f"No bakfile found for {filename}")
         return True
     # Disambiguate
     old_bakfile = old_bakfile[0] if len(old_bakfile) == 1 else \
         _do_select_bakfile(old_bakfile)
     if old_bakfile is None:
-        click.echo("Cancelled.")
+        console.print("Cancelled.")
         return True
     elif not isinstance(old_bakfile, bakfile.BakFile):
         return False
@@ -226,17 +235,18 @@ def bak_down_cmd(filename: str,
         filename (str|os.path)
         keep_bakfile (bool): If False, .bakfile is deleted (default: False)
     """
+    console = Console()
     filename = expandpath(filename)
     bakfile_entries = db_handler.get_bakfile_entries(filename)
     if not bakfile_entries:
-        click.echo(f"No bakfiles found for {filename}")
+        console.print(f"No bakfiles found for {filename}")
         return
 
     bakfile_entry = _do_select_bakfile(bakfile_entries) if len(
         bakfile_entries) > 1 else bakfile_entries[0]
 
-    if not bakfile_entry:
-        click.echo(f"No bakfiles found for {filename}")
+    if bakfile_entry == None:
+        console.print(f"No bakfiles found for {filename}")
         return
 
     if quiet:
@@ -248,7 +258,7 @@ def bak_down_cmd(filename: str,
         confirm_prompt += "(y/n)"
         confirm = click.prompt(confirm_prompt, default='n')
     if confirm.lower()[0] != 'y':
-        click.echo("Cancelled.")
+        console.print("Cancelled.")
         return
     # os.remove(filename)
     # copy2(bakfile_entry.bakfile_loc, filename)
@@ -282,10 +292,11 @@ def bak_off_cmd(filename: (None, str, os.path),
     Args:
         filename ([type], optional): [description]. Defaults to None.
     """
+    console = Console()
     filename = expandpath(filename)
     bakfiles = db_handler.get_bakfile_entries(filename)
-    if not bakfiles:
-        click.echo(f"No bakfiles found for {os.path.abspath(filename)}")
+    if bakfiles == []:
+        console.print(f"No bakfiles found for {os.path.abspath(filename)}")
         return False
     confirm = input(
         f"Confirming: Remove {len(bakfiles)} .bakfiles for {filename}? "
@@ -301,14 +312,16 @@ def bak_print_cmd(bak_to_print: (str, bakfile.BakFile),
                   using: (str, None) = None):
     # if this thing is given a string, it needs to go find
     # a corresponding bakfile
+    console = Console()
+
     if not isinstance(bak_to_print, bakfile.BakFile):
         _bak_to_print = _get_bakfile_entry(bak_to_print,
                                            select_prompt=(
                                                default_select_prompt))
                                             #    "View which .bakfile? (#)",
                                             #    "c"))
-        if not _bak_to_print:
-            click.echo(
+        if _bak_to_print == None:
+            console.print(
                 f"No bakfiles found for {os.path.abspath(bak_to_print)}")
         else:
             bak_to_print = _bak_to_print
@@ -321,23 +334,29 @@ def bak_print_cmd(bak_to_print: (str, bakfile.BakFile),
 
 
 def bak_getfile_cmd(bak_to_get: (str, bakfile.BakFile)):
+    console = Console()
+
     if not isinstance(bak_to_get, bakfile.BakFile):
         filename = bak_to_get
         bak_to_get = _get_bakfile_entry(bak_to_get, err=True)
-        if not bak_to_get:
-            click.echo(f"No bakfiles found for {os.path.abspath(filename)}")
+        if bak_to_get == None:
+            console.print(f"No bakfiles found for {os.path.abspath(filename)}")
             return  # _get_bakfile_entry() handles failures, so just exit
-    click.echo(bak_to_get.bakfile_loc)
+    console.print(bak_to_get.bakfile_loc)
 
 
 def bak_diff_cmd(filename: str, command='diff'):
     # TODO write tests for this (mildly tricky)
+    console = Console()
+
     bak_to_diff = filename if isinstance(filename, bakfile.BakFile) else \
         _get_bakfile_entry(expandpath(filename))
     if not command:
         command = cfg['bak_diff_exec'] or 'diff'
+    if bak_to_diff == None:
+        console.print(f"No bakfiles found for {os.path.abspath(filename)}")
+        return
     if not bak_to_diff:
-        click.echo(f"No bakfiles found for {os.path.abspath(filename)}")
         return
     command = command.strip('"').strip("'").split(" ")
     call(command +
