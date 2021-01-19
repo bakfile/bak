@@ -72,15 +72,21 @@ def bak_off(filename, quietly):
         # TODO better output here
         click.echo("Operation cancelled or failed.")
 
-
-@bak.command("show", help="View a .bakfile in an external program")
-@click.option("--using", "--in",
+@bak.command("open", help="""
+                            \b
+                            View or edit a .bakfile in an external program
+                            \b
+                            Arguments:
+                                Specify program:
+                                    --using PROGRAM
+                                    --with
+                                    --in""")
+@click.option("--using", "--in", "--with",
               help="Program to open (default: $PAGER or less)",
-              required=False)
+              required=False, hidden=True)
 @click.argument("filename", required=True, type=click.Path(exists=True))
 def bak_print(filename, using):
     commands.bak_print_cmd(filename, using)
-
 
 @bak.command("get-bak",
              help="Outputs the real path of a .bakfile. "
@@ -94,7 +100,7 @@ def bak_get(to_where_you_once_belonged):
 
 
 @bak.command("diff")
-@click.option("--using", "--in",
+@click.option("--using", "--with",
               help="Program to use instead of system diff",
               required=False)
 @click.argument("filename", required=True, type=click.Path(exists=True))

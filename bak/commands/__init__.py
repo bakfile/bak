@@ -277,8 +277,9 @@ def bak_print_cmd(bak_to_print: (str, bakfile.BakFile),
     if not isinstance(bak_to_print, bakfile.BakFile):
         _bak_to_print = _get_bakfile_entry(bak_to_print,
                                            select_prompt=(
-                                               "View which .bakfile? (#)",
-                                               "c"))
+                                               default_select_prompt))
+                                            #    "View which .bakfile? (#)",
+                                            #    "c"))
         if not _bak_to_print:
             click.echo(
                 f"No bakfiles found for {os.path.abspath(bak_to_print)}")
