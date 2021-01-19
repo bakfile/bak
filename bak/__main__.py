@@ -4,7 +4,6 @@ from shutil import copy2
 
 import click
 from click_default_group import DefaultGroup
-import config
 
 from bak import commands
 
@@ -106,7 +105,19 @@ def bak_get(to_where_you_once_belonged):
 @click.argument("filename", required=True, type=click.Path(exists=True))
 def bak_diff(filename, using):
     commands.bak_diff_cmd(filename, command=using)
-
+    
+@bak.command("list")
+@click.option("--relpaths",
+              help="Display relative paths",
+              required=False,
+              is_flag=True,
+              default=commands.bak_list_relpaths)
+@click.argument("filename",
+            #   help="List a particular file's .bakfiles",
+              required=False,
+              type=click.Path(exists=True))
+def bak_list(relpaths, filename):
+    commands.show_bak_list(filename=filename or None, relative_paths=relpaths)
 
 if __name__ == "__main__":
     bak()

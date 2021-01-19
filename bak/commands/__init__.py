@@ -11,6 +11,9 @@ from warnings import warn
 import click
 from config import Config
 
+from rich.console import Console
+from rich.table import Table
+
 from bak.data import bakfile, bak_db
 
 # TODO: customizable file extension
@@ -31,6 +34,8 @@ bak_dir = cfg['bakfile_location'] or os.path.join(data_dir,
                                                   "bak", "bakfiles")
 bak_db_loc = cfg['bak_database_location'] or \
     os.path.join(data_dir, "bak", "bak.db")
+
+bak_list_relpaths = cfg['bak_list_relative_paths']
 
 if not os.path.exists(bak_dir):
     os.makedirs(bak_dir)
@@ -130,15 +135,37 @@ def _do_select_bakfile(bakfiles: List[bakfile.BakFile],
             get_choice()
 
 
-def show_bak_list(filename: (None, str, os.path) = None):
+def show_bak_list(filename: (None, str, os.path) = None,
+                  relative_paths: bool = False):
     """ Prints list of .bakfiles with metadata
 
     Arguments:
         filename (str|os.path, optional):
         List only `filename`'s .bakfiles
     """
-    pass
+    # pass
+    bakfiles: list[bakfile.BakFile]
+    bakfiles = db_handler.get_bakfile_entries(filename) if filename else \
+                db_handler.get_all_entries()
 
+    _title = f".bakfiles of {os.path.abspath(os.path.expanduser(filename))}" if \
+                filename else ".bakfiles"
+
+    table = Table(title=_title)
+    
+    table.add_column("Original File")
+    table.add_column("Date Created")
+    table.add_column("Last Modified")
+
+    for _bakfile in bakfiles:
+        table.add_row((os.path.relpath(_bakfile.original_file)) if \
+                      relative_paths else \
+                      _bakfile.orig_abspath,
+                      _bakfile.date_created,
+                      _bakfile.date_modified)
+        
+    console = Console()
+    console.print(table)
 
 def create_bakfile(filename: str):
     """ Default command. Roughly equivalent to
