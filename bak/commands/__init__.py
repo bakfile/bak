@@ -77,7 +77,7 @@ default_select_prompt = ("Enter a number, or: (V)iew (D)iff (C)ancel", 'C')
 
 def _get_bakfile_entry(filename,
                        select_prompt=default_select_prompt,
-                       err=False):
+                       err=True):
     entries = db_handler.get_bakfile_entries(expandpath(filename))
     if (entries is False) or len(entries) == 0:
         return None
@@ -89,7 +89,7 @@ def _get_bakfile_entry(filename,
 
 def _do_select_bakfile(bakfiles: List[bakfile.BakFile],
                        select_prompt=default_select_prompt,
-                       err=False):
+                       err=True):
     console = Console(file=stderr if err else stdout)
     console.print(
         f"Found {len(bakfiles)} bakfiles for file: {bakfiles[0].orig_abspath}")
@@ -97,7 +97,7 @@ def _do_select_bakfile(bakfiles: List[bakfile.BakFile],
     _range = range(len(bakfiles))
     for i in _range:
         console.print(
-            f"{i + 1}: .bakfile last modified at {bakfiles[i].date_modified}")
+            f"{i + 1}: .bakfile last modified at {bakfiles[i].date_modified.split('.')[0]}")
 
     def get_choice():
         return click.prompt(*select_prompt, err=err).lower()
@@ -203,8 +203,7 @@ def create_bakfile(filename: str):
 
 
 def bak_up_cmd(filename: str):
-    """ Create a .bakfile, replacing the most recent .bakfile of
-        `filename`, if one exists
+    """ Overwrite an existing .bakfile with the file's current contents
 
     Args:
         filename (str|os.path)
@@ -223,7 +222,10 @@ def bak_up_cmd(filename: str):
         return True
     # Disambiguate
     old_bakfile = old_bakfile[0] if len(old_bakfile) == 1 else \
-        _do_select_bakfile(old_bakfile)
+        _do_select_bakfile(old_bakfile,
+                           select_prompt=(
+                               ("Enter a number to overwrite a .bakfile, or:\n(V)iew (L)ist (C)ancel", "C")))
+
     if old_bakfile is None:
         console.print("Cancelled.")
         return True
@@ -259,6 +261,8 @@ def bak_down_cmd(filename: str,
     if bakfile_entry == None:
         console.print(f"No bakfiles found for {filename}")
         return
+    elif not bakfile_entry:
+        return
 
     if quiet:
         confirm = 'y'
@@ -274,13 +278,15 @@ def bak_down_cmd(filename: str,
     # os.remove(filename)
     # copy2(bakfile_entry.bakfile_loc, filename)
     if not keep_bakfile:
-        os.rename(bakfile_entry.bakfile_loc, filename)
+        os.rename(bakfile_entry.bakfile_loc, bakfile_entry.orig_abspath)
         for entry in bakfile_entries:
             # bakfile_entry's bakfile has already been moved
             # trying to rm it would print a failure
             if entry != bakfile_entry:
                 os.remove(entry.bakfile_loc)
             db_handler.del_bakfile_entry(entry)
+    else:
+        copy2(bakfile_entry.bakfile_loc, bakfile_entry.orig_abspath)
 
 
 def __remove_bakfiles(bakfile_entries):
@@ -354,7 +360,7 @@ def bak_getfile_cmd(bak_to_get: (str, bakfile.BakFile)):
         if bak_to_get == None:
             console.print(f"No bakfiles found for {os.path.abspath(filename)}")
             return  # _get_bakfile_entry() handles failures, so just exit
-    console.print(bak_to_get.bakfile_loc)
+    print(bak_to_get.bakfile_loc)
 
 
 def bak_diff_cmd(filename: str, command='diff'):
