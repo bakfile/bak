@@ -12,7 +12,10 @@ from warnings import warn
 import click
 from config import Config
 
+from rich import box
+from rich.color import Color
 from rich.console import Console
+from rich.style import Style
 from rich.table import Table
 
 from bak.data import bakfile, bak_db
@@ -121,7 +124,7 @@ def _do_select_bakfile(bakfiles: List[bakfile.BakFile],
                     idx = int(choice) - 1
                 if idx not in _range:
                     console.print("Invalid selection. Aborting.")
-                    return None
+                    return False
                 elif view:
                     bak_print_cmd(bakfiles[idx])
                     choice = get_choice()
@@ -158,20 +161,24 @@ def show_bak_list(filename: (None, str, os.path) = None,
     _title = f".bakfiles of {os.path.abspath(os.path.expanduser(filename))}" if \
                 filename else ".bakfiles"
 
-    table = Table(title=_title)
+    table = Table(title=_title,
+                  show_lines=True, box=box.HEAVY_EDGE)
     
+    table.add_column("")
     table.add_column("Original File")
     table.add_column("Date Created")
     table.add_column("Last Modified")
 
-
+    i = 1
     for _bakfile in bakfiles:
-        table.add_row((os.path.relpath(_bakfile.original_file)) if \
+        table.add_row(str(i),
+                      (os.path.relpath(_bakfile.original_file)) if \
                       relative_paths else \
                       _bakfile.orig_abspath,
-                      _bakfile.date_created,
-                      _bakfile.date_modified)
-        
+                      _bakfile.date_created.split('.')[0],
+                      _bakfile.date_modified.split('.')[0])
+        i+=1
+
     console.print(table)
 
 def create_bakfile(filename: str):
