@@ -72,14 +72,14 @@ def _assemble_bakfile(filename):
     return new_bak_entry
 
 
-default_select_prompt = ("Enter a number, or: (V)iew (D)iff (C)ancel", 'c')
+default_select_prompt = ("Enter a number, or: (V)iew (D)iff (C)ancel", 'C')
 
 
 def _get_bakfile_entry(filename,
                        select_prompt=default_select_prompt,
                        err=False):
     entries = db_handler.get_bakfile_entries(expandpath(filename))
-    if not entries or len(entries) == 0:
+    if (entries is False) or len(entries) == 0:
         return None
     # If there's only one bakfile corresponding to filename, return that.
     # If there's more than one, disambiguate.
@@ -118,6 +118,10 @@ def _do_select_bakfile(bakfiles: List[bakfile.BakFile],
                     idx = int(click.prompt(
                         "Diff which .bakfile?", err=err)) - 1
                     bak_diff_cmd(bakfiles[idx])
+                    choice = get_choice()
+                    continue
+                elif choice == "l":
+                    show_bak_list(bakfiles[0].orig_abspath)
                     choice = get_choice()
                     continue
                 else:
@@ -324,7 +328,8 @@ def bak_print_cmd(bak_to_print: (str, bakfile.BakFile),
     if not isinstance(bak_to_print, bakfile.BakFile):
         _bak_to_print = _get_bakfile_entry(bak_to_print,
                                            select_prompt=(
-                                               default_select_prompt))
+                                               "Enter a number to select a .bakfile, or:\n(D)iff (L)ist (C)ancel",
+                                               "C"))
                                             #    "View which .bakfile? (#)",
                                             #    "c"))
         if _bak_to_print == None:
@@ -357,7 +362,9 @@ def bak_diff_cmd(filename: str, command='diff'):
     console = Console()
 
     bak_to_diff = filename if isinstance(filename, bakfile.BakFile) else \
-        _get_bakfile_entry(expandpath(filename))
+        _get_bakfile_entry(expandpath(filename),
+                           select_prompt=(
+                               ("Enter a number to diff a .bakfile, or:\n(V)iew (L)ist (C)ancel", "C")))
     if not command:
         command = cfg['bak_diff_exec'] or 'diff'
     if bak_to_diff == None:
