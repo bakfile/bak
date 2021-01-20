@@ -352,7 +352,7 @@ def bak_print_cmd(bak_to_print: (str, bakfile.BakFile),
 
 
 def bak_getfile_cmd(bak_to_get: (str, bakfile.BakFile)):
-    console = Console()
+    console = Console(file=stderr)
 
     if not isinstance(bak_to_get, bakfile.BakFile):
         filename = bak_to_get

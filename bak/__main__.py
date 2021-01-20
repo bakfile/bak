@@ -71,15 +71,7 @@ def bak_off(filename, quietly):
         # TODO better output here
         click.echo("Operation cancelled or failed.")
 
-@bak.command("open", help="""
-                            \b
-                            View or edit a .bakfile in an external program
-                            \b
-                            Arguments:
-                                Specify program:
-                                    --using PROGRAM
-                                    --with
-                                    --in""")
+@bak.command("open", help="View or edit a .bakfile in an external program")
 @click.option("--using", "--in", "--with",
               help="Program to open (default: $PAGER or less)",
               required=False, hidden=True)
@@ -98,7 +90,8 @@ def bak_get(to_where_you_once_belonged):
     commands.bak_getfile_cmd(to_where_you_once_belonged)
 
 
-@bak.command("diff")
+@bak.command("diff",
+             help="diff a file against its .bakfile")
 @click.option("--using", "--with",
               help="Program to use instead of system diff",
               required=False)
@@ -106,9 +99,10 @@ def bak_get(to_where_you_once_belonged):
 def bak_diff(filename, using):
     commands.bak_diff_cmd(filename, command=using)
     
-@bak.command("list")
+@bak.command("list",
+             help="List all .bakfiles, or a particular file's")
 @click.option("--relpaths",
-              help="Display relative paths",
+              help="Display relative paths instead of abspaths",
               required=False,
               is_flag=True,
               default=commands.bak_list_relpaths)
