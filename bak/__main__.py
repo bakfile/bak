@@ -6,6 +6,7 @@ import click
 from click_default_group import DefaultGroup
 
 from bak import commands
+from bak import version as bak_version
 
 
 def __print_help():
@@ -23,10 +24,13 @@ def bak():
 
 
 @bak.command("\0", hidden=True)
+@click.option("--version", required=False, is_flag=True)
 @click.argument("filename", required=False, type=click.Path(exists=True))
 # Ensures that 'bak --help' is printed if it doesn't get a filename
-def create(filename):
-    if not filename:
+def create(filename, version):
+    if version:
+        click.echo(f"bak version {bak_version}")
+    elif not filename:
         __print_help()
     else:
         commands.create_bakfile(filename)
