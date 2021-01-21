@@ -111,7 +111,7 @@ def bak_diff(filename, using):
               required=False,
               type=click.Path(exists=True))
 def bak_list(relpaths, filename):
-    commands.show_bak_list(filename=filename or None, relative_paths=relpaths)
+    commands.open_bak_list(filename=filename or None, relative_paths=relpaths)
 
 if __name__ == "__main__":
     bak()

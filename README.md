@@ -27,26 +27,33 @@ All of **bak**'s commands will disambiguate between multiple copies of the same 
 ## Additional commands and flags
 
 `bak down --keep my_file` - Restores from .bakfile, does not delete .bakfile  
-`bak diff my_file` Compare a .bakfile using `diff` (will become configurable)  
+`bak diff my_file` Compare a .bakfile using `diff` (configurable)  
 `bak list`/`bak list my_file` - List all .bakfiles, or just `my_file`'s  
-`bak open my_file` View a .bakfile in $PAGER  
+`bak open my_file` View a .bakfile in $PAGER (configurable)  
 `bak open --using exec my_file` View a .bakfile using `exec`  (alias `--in`)
 
-examples:
+> examples:
 
         bak open --using cat my_file.json
         bak open --in nvim my_file.json
 
 `bak get-bak my_file` Get the abspath of a .bakfile, in case, for some reason, you want to pipe it somewhere
 
-example (for illustrative purposes; use 'bak diff' instead):
+> example (for illustrative purposes; use 'bak diff' instead):
 
-    diff `bak get-bak my_file.json)` my_file.json
+    diff `bak get-bak my_file.json` my_file.json
 
 ## Current state (updated Jan. 20, 2020)
 This is a very pre-alpha version, as in, this is a spaghetti proof-of-concept. Perhaps ~~5-6~~ ~~12-15~~ 20 hours have been spent on development so far. As such, it's only "working" in the strictest sense.
 
 At the moment, **bak** stores its database and your bakfiles in `$XDG_DATA_HOME/bak`. If `$XDG_DATA_HOME` is not set, its specified default is used, and your stuff ends up in `~/.local/share/bak`.
+
+The config file exists, but could be more intuitive. It's at `$XDG_CONFIG_HOME/bak.cfg` or `~/.config/bak.cfg` and currently accepts values for:
+
+* The location of your .bakfiles and bakfile DB (I don't recommend changing this)
+* The program to use by default for `bak open`
+* The program to use by default for `bak diff` (at the moment, this must support typical `diff` syntax, as in `diff <file1> <file2>`)
+* Whether `bak list` should display relative paths (defaults to False)
 
 If the above sections suggest that a command is implemented, it's working at the most basic level. There are few sanity checks. Expect and please report bugs, as well as feature requests. If you're brave enough to work on a project in the early, mediocre phase, go nuts with the PRs.
 

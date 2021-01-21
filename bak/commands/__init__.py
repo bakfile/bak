@@ -121,7 +121,7 @@ def _do_select_bakfile(bakfiles: List[bakfile.BakFile],
                     choice = get_choice()
                     continue
                 elif choice == "l":
-                    show_bak_list(bakfiles[0].orig_abspath)
+                    open_bak_list(bakfiles[0].orig_abspath)
                     choice = get_choice()
                     continue
                 else:
@@ -142,7 +142,7 @@ def _do_select_bakfile(bakfiles: List[bakfile.BakFile],
             get_choice()
 
 
-def show_bak_list(filename: (None, str, os.path) = None,
+def open_bak_list(filename: (None, str, os.path) = None,
                   relative_paths: bool = False):
     """ Prints list of .bakfiles with metadata
 
@@ -346,7 +346,7 @@ def bak_print_cmd(bak_to_print: (str, bakfile.BakFile),
         if not isinstance(bak_to_print, bakfile.BakFile):
             return  # _get_bakfile_entry() handles failures, so just exit here
     pager = using if using else \
-        (cfg['bak_show_exec'] or os.environ['PAGER']) or 'less'
+        (cfg['bak_open_exec'] or os.environ['PAGER']) or 'less'
     pager = pager.strip('"').strip("'").split(" ")
     call(pager + [bak_to_print.bakfile_loc])
 
