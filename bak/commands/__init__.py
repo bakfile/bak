@@ -121,7 +121,7 @@ def _do_select_bakfile(bakfiles: List[bakfile.BakFile],
                     choice = get_choice()
                     continue
                 elif choice == "l":
-                    open_bak_list(bakfiles[0].orig_abspath)
+                    show_bak_list(bakfiles[0].orig_abspath)
                     choice = get_choice()
                     continue
                 else:
@@ -142,7 +142,7 @@ def _do_select_bakfile(bakfiles: List[bakfile.BakFile],
             get_choice()
 
 
-def open_bak_list(filename: (None, str, os.path) = None,
+def show_bak_list(filename: (None, str, os.path) = None,
                   relative_paths: bool = False):
     """ Prints list of .bakfiles with metadata
 
@@ -151,7 +151,7 @@ def open_bak_list(filename: (None, str, os.path) = None,
         List only `filename`'s .bakfiles
     """
     # pass
-    bakfiles: list[bakfile.BakFile]
+    bakfiles: List[bakfile.BakFile]
     bakfiles = db_handler.get_bakfile_entries(filename) if filename else \
                 db_handler.get_all_entries()
 
@@ -226,7 +226,7 @@ def bak_up_cmd(filename: str):
                            select_prompt=(
                                ("Enter a number to overwrite a .bakfile, or:\n(V)iew (L)ist (C)ancel", "C")))
 
-    if old_bakfile is None:
+    if old_bakfile == None:
         console.print("Cancelled.")
         return True
     elif not isinstance(old_bakfile, bakfile.BakFile):
@@ -275,8 +275,6 @@ def bak_down_cmd(filename: str,
     if confirm.lower()[0] != 'y':
         console.print("Cancelled.")
         return
-    # os.remove(filename)
-    # copy2(bakfile_entry.bakfile_loc, filename)
     if not keep_bakfile:
         os.rename(bakfile_entry.bakfile_loc, bakfile_entry.orig_abspath)
         for entry in bakfile_entries:

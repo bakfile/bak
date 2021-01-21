@@ -102,7 +102,7 @@ def bak_get(to_where_you_once_belonged):
 @click.argument("filename", required=True, type=click.Path(exists=True))
 def bak_diff(filename, using):
     commands.bak_diff_cmd(filename, command=using)
-    
+
 @bak.command("list",
              help="List all .bakfiles, or a particular file's")
 @click.option("--relpaths",
@@ -115,7 +115,7 @@ def bak_diff(filename, using):
               required=False,
               type=click.Path(exists=True))
 def bak_list(relpaths, filename):
-    commands.open_bak_list(filename=filename or None, relative_paths=relpaths)
+    commands.show_bak_list(filename=filename or None, relative_paths=relpaths)
 
 if __name__ == "__main__":
     bak()
