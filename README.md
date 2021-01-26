@@ -2,6 +2,14 @@
 
 **bak** is a command-line utility for creating and restoring backup copies of single files - `.bak` files - without clutter.
 
+- [Description and Usage](#description-and-usage)
+- [Additional Commands](#additional-commands-and-flags)
+- [Installation and Requirements](#installation-and-requirements)
+- [Current State](#current-state)
+- [Contributing](#contributing)
+
+## Description and Usage
+
 As residents of the terminal, we all make a lot of on-the-fly, in-place, single-file backups. Config files, dotfiles, "I'm only pretty sure I know what I'm doing" files, before you break them, you do this:
 
 `cp my_thing.file my_thing.file.bak`
@@ -43,18 +51,43 @@ All of **bak**'s commands will disambiguate between multiple copies of the same 
 
     diff `bak get-bak my_file.json` my_file.json
 
-## Current state (updated Jan. 20, 2020)
+## Installation and Requirements
+
+Requires Python3.6 or higher, presumably. Python3.5 has been EOL for 3 months, as of this writing, so if your distro is pegged to it... ouch.
+
+### Installation
+
+As the program is currently in an alphaish state, I have decided not to create distro packages *yet*. I will provide GitHub releases whenever I bump the alpha-alpha version number.
+
+However, if you're comfortable with Python, you can install this repository with the provided `setup.py` *or* with pip (just run pip on the local directory.)
+
+If you'd like to hack on `bak`, I suggest the latter; I'm in the habit of making a project venv, and then doing  
+`pip3 install --editable .`
+
+In `bak`'s case, I usually test system-level usage with a simple and naive `setup.py install --force`
+
+## Current state
+
+(updated Jan. 20, 2020)  
 This is a very pre-alpha version, as in, this is a spaghetti proof-of-concept. Perhaps ~~5-6~~ ~~12-15~~ 20 hours have been spent on development so far. As such, it's only "working" in the strictest sense.
 
 At the moment, **bak** stores its database and your bakfiles in `$XDG_DATA_HOME/bak`. If `$XDG_DATA_HOME` is not set, its specified default is used, and your stuff ends up in `~/.local/share/bak`.
 
 The config file exists, but could be more intuitive. It's at `$XDG_CONFIG_HOME/bak.cfg` or `~/.config/bak.cfg` and currently accepts values for:
 
-* The location of your .bakfiles and bakfile DB (I don't recommend changing this)
-* The program to use by default for `bak open`
-* The program to use by default for `bak diff` (at the moment, this must support typical `diff` syntax, as in `diff <file1> <file2>`)
-* Whether `bak list` should display relative paths (defaults to False)
+- The location of your .bakfiles and bakfile DB (I don't recommend changing this)
+- The program to use by default for `bak open`
+- The program to use by default for `bak diff` (at the moment, this must support typical `diff` syntax, as in `diff <file1> <file2>`)
+- Whether `bak list` should display relative paths (defaults to False)
 
 If the above sections suggest that a command is implemented, it's working at the most basic level. There are few sanity checks. Expect and please report bugs, as well as feature requests. If you're brave enough to work on a project in the early, mediocre phase, go nuts with the PRs.
 
 Also, there's ~~no~~ very little exception handling (yet.)
+
+## Contributing
+
+By and large, I welcome PRs, though I never promise merges.
+
+With an MIT license and GitHub, the licensing situation is a lot more straightforward than in some other cases: you clone this repo, you're getting the code from the author, and the license has the word "irrevocable" in it. Then you're offering a modified version *back* to the author, with the same license file, still containing the word "irrevocable." What's there to sue about?
+
+So go nuts, if you're so inclined. I have no particular expectations for this project.
