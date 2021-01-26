@@ -219,7 +219,9 @@ def bak_up_cmd(filename: str):
     old_bakfile = db_handler.get_bakfile_entries(filename)
     if old_bakfile == None:
         console.print(f"No bakfile found for {filename}")
-        return True
+        console.print(f"Creating {filename}.bak")
+        return create_bakfile(filename)
+
     # Disambiguate
     old_bakfile = old_bakfile[0] if len(old_bakfile) == 1 else \
         _do_select_bakfile(old_bakfile,

@@ -60,7 +60,7 @@ class BakDBHandler():
                 """
                     SELECT * FROM bakfiles WHERE original_abspath=:orig
                 """, (os.path.abspath(os.path.expanduser(filename)),))
-            return [BakFile(*entry) for entry in c.fetchall()]
+            return [BakFile(*entry) for entry in c.fetchall()] or None
 
     def get_all_entries(self):
         with sqlite3.connect(self.db_loc) as db_conn:
