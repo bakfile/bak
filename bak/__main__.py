@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from pathlib import Path
 from shutil import copy2
 
 import click
@@ -33,6 +34,7 @@ def create(filename, version):
     elif not filename:
         __print_help()
     else:
+        filename = Path(filename).expanduser().resolve()
         commands.create_bakfile(filename)
 
 
@@ -42,6 +44,7 @@ def bak_up(filename):
     if not filename:
         click.echo("A filename or operation is required.\n"
                    "\tbak --help")
+    filename = Path(filename).expanduser().resolve()
     if not commands.bak_up_cmd(filename):
         # TODO descriptive failures
         click.echo("An error occurred.")
@@ -61,6 +64,7 @@ def bak_down(filename, keep, quietly):
     if not filename:
         click.echo("A filename or operation is required.\n"
                    "\tbak --help")
+    filename = Path(filename).expanduser().resolve()
     commands.bak_down_cmd(filename, keep, quietly)
 
 
@@ -71,9 +75,11 @@ def bak_down(filename, keep, quietly):
               help="Delete all related .bakfiles without confirming")
 @click.argument("filename", required=True, type=click.Path(exists=True))
 def bak_off(filename, quietly):
+    filename = Path(filename).expanduser().resolve()
     if not commands.bak_off_cmd(filename, quietly):
         # TODO better output here
         click.echo("Operation cancelled or failed.")
+
 
 @bak.command("open", help="View or edit a .bakfile in an external program")
 @click.option("--using", "--in", "--with",
@@ -81,7 +87,9 @@ def bak_off(filename, quietly):
               required=False, hidden=True)
 @click.argument("filename", required=True, type=click.Path(exists=True))
 def bak_print(filename, using):
+    filename = Path(filename).expanduser().resolve()
     commands.bak_print_cmd(filename, using)
+
 
 @bak.command("get-bak",
              help="Outputs the real path of a .bakfile. "
@@ -91,6 +99,7 @@ def bak_print(filename, using):
                 required=True,
                 type=click.Path(exists=True))
 def bak_get(to_where_you_once_belonged):
+    to_where_you_once_belonged = Path(to_where_you_once_belonged).expanduser().resolve()
     commands.bak_getfile_cmd(to_where_you_once_belonged)
 
 
@@ -101,7 +110,9 @@ def bak_get(to_where_you_once_belonged):
               required=False)
 @click.argument("filename", required=True, type=click.Path(exists=True))
 def bak_diff(filename, using):
+    filename = Path(filename).expanduser().resolve()
     commands.bak_diff_cmd(filename, command=using)
+
 
 @bak.command("list",
              help="List all .bakfiles, or a particular file's")
@@ -111,11 +122,14 @@ def bak_diff(filename, using):
               is_flag=True,
               default=commands.bak_list_relpaths)
 @click.argument("filename",
-            #   help="List a particular file's .bakfiles",
-              required=False,
-              type=click.Path(exists=True))
+                #   help="List a particular file's .bakfiles",
+                required=False,
+                type=click.Path(exists=True))
 def bak_list(relpaths, filename):
+    if filename:
+        filename = Path(filename).expanduser().resolve()
     commands.show_bak_list(filename=filename or None, relative_paths=relpaths)
+
 
 if __name__ == "__main__":
     bak()

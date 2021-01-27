@@ -1,8 +1,9 @@
 import os
 import sqlite3
+from pathlib import Path
 
 from datetime import datetime
-from typing import List
+from typing import Optional
 from shutil import copy2
 from subprocess import call
 from sys import stderr, stdout
@@ -23,49 +24,37 @@ from bak.data import bakfile, bak_db
 # TODO: customizable file extension
 
 try:
-    data_dir = os.environ["XDG_DATA_HOME"]
+    data_dir = Path(os.environ["XDG_DATA_HOME"]).expanduser().resolve()
 except KeyError:
-    data_dir = os.path.expanduser("~/.local/share")
+    data_dir = Path("~/.local/share").expanduser().resolve()
 try:
-    config_dir = os.environ["XDG_CONFIG_HOME"]
+    config_dir = Path(os.environ["XDG_CONFIG_HOME"]).expanduser().resolve()
 except KeyError:
-    config_dir = os.path.expanduser("~/.config")
+    config_dir = Path("~/.config").expanduser().resolve()
 
-config_file = os.path.join(config_dir, 'bak.cfg')
-cfg = Config(config_file)
+config_file = config_dir / 'bak.cfg'
+cfg = Config(str(config_file))
 
-bak_dir = cfg['bakfile_location'] or os.path.join(data_dir,
-                                                  "bak", "bakfiles")
-bak_db_loc = cfg['bak_database_location'] or \
-    os.path.join(data_dir, "bak", "bak.db")
+bak_dir = cfg['bakfile_location'] or data_dir / 'bak' / 'bakfiles'
+bak_db_loc = cfg['bak_database_location'] or data_dir / 'bak' / 'bak.db'
 
 bak_list_relpaths = cfg['bak_list_relative_paths']
 
-if not os.path.exists(bak_dir):
-    os.makedirs(bak_dir)
+if not bak_dir.exists():
+    bak_dir.mkdir(parents=True)
 
 db_handler = bak_db.BakDBHandler(bak_db_loc)
 
 
-def expandpath(i_path):
-    return os.path.abspath(os.path.expanduser(i_path))
-
-
-def _assemble_bakfile(filename):
+def _assemble_bakfile(filename: Path):
     time_now = datetime.now()
-    splitname = os.path.split(expandpath(filename))
-    bakfile_name = "".join([".".join(i[1:].replace("/", "-")
-                                     for i in splitname[:-1]) +
-                            '-' +
-                            splitname[-1],
-                            ".",
-                            '-'.join(str(
-                                time_now.timestamp()).split('.')),
-                            ".bak"]).replace(" ", "-")
-    bakfile_path = os.path.join(bak_dir, bakfile_name)
+    bakfile_name = "".join(
+        ["-".join(i for i in filename.parent.parts[1:])
+         + '-' + filename.name, ".", '-'.join(str(time_now.timestamp()).split('.')), ".bak"]).replace(" ", "-")
+    bakfile_path = bak_dir / bakfile_name
 
-    new_bak_entry = bakfile.BakFile(os.path.basename(filename),
-                                    os.path.abspath(filename),
+    new_bak_entry = bakfile.BakFile(filename.name,
+                                    filename,
                                     bakfile_path,
                                     time_now,
                                     time_now)
@@ -75,10 +64,10 @@ def _assemble_bakfile(filename):
 default_select_prompt = ("Enter a number, or: (V)iew (D)iff (C)ancel", 'C')
 
 
-def _get_bakfile_entry(filename,
+def _get_bakfile_entry(filename: Path,
                        select_prompt=default_select_prompt,
                        err=True):
-    entries = db_handler.get_bakfile_entries(expandpath(filename))
+    entries = db_handler.get_bakfile_entries(filename.resolve())
     if (entries is False) or len(entries) == 0:
         return None
     # If there's only one bakfile corresponding to filename, return that.
@@ -101,6 +90,7 @@ def _do_select_bakfile(bakfiles: List[bakfile.BakFile],
 
     def get_choice():
         return click.prompt(*select_prompt, err=err).lower()
+
     choice = get_choice()
 
     while True:
@@ -142,7 +132,7 @@ def _do_select_bakfile(bakfiles: List[bakfile.BakFile],
             get_choice()
 
 
-def show_bak_list(filename: (None, str, os.path) = None,
+def show_bak_list(filename: Optional[Path] = None,
                   relative_paths: bool = False):
     """ Prints list of .bakfiles with metadata
 
@@ -153,21 +143,21 @@ def show_bak_list(filename: (None, str, os.path) = None,
     # pass
     bakfiles: List[bakfile.BakFile]
     bakfiles = db_handler.get_bakfile_entries(filename) if filename else \
-                db_handler.get_all_entries()
+        db_handler.get_all_entries()
 
     console = Console()
-    if bakfiles == []:
+    if bakfiles is []:
         console.print(f"No .bakfiles found for "
-                      f"{os.path.abspath(os.path.expanduser(filename))}" if \
-                        filename else "No .bakfiles found")
+                      f"{filename}" if
+                      filename else "No .bakfiles found")
         return
-    
-    _title = f".bakfiles of {os.path.abspath(os.path.expanduser(filename))}" if \
-                filename else ".bakfiles"
+
+    _title = f".bakfiles of {filename}" if \
+        filename else ".bakfiles"
 
     table = Table(title=_title,
                   show_lines=True, box=box.HEAVY_EDGE)
-    
+
     table.add_column("")
     table.add_column("Original File")
     table.add_column("Date Created")
@@ -176,16 +166,17 @@ def show_bak_list(filename: (None, str, os.path) = None,
     i = 1
     for _bakfile in bakfiles:
         table.add_row(str(i),
-                      (os.path.relpath(_bakfile.original_file)) if \
-                      relative_paths else \
+                      (filename.resolve()) if
+                      relative_paths else
                       _bakfile.orig_abspath,
                       _bakfile.date_created.split('.')[0],
                       _bakfile.date_modified.split('.')[0])
-        i+=1
+        i += 1
 
     console.print(table)
 
-def create_bakfile(filename: str):
+
+def create_bakfile(filename: Path):
     """ Default command. Roughly equivalent to
             cp filename $XDG_DATA_DIR/.bakfiles/filename.bak
         but inserts relevant metadata into the database.
@@ -193,8 +184,7 @@ def create_bakfile(filename: str):
     Arguments:
         filename: (str|os.path)
     """
-    filename = expandpath(filename)
-    if not os.path.exists(filename):
+    if not filename.exists():
         # TODO descriptive failure
         return False
     new_bakfile = _assemble_bakfile(filename)
@@ -202,7 +192,7 @@ def create_bakfile(filename: str):
     db_handler.create_bakfile_entry(new_bakfile)
 
 
-def bak_up_cmd(filename: str):
+def bak_up_cmd(filename: Path):
     """ Overwrite an existing .bakfile with the file's current contents
 
     Args:
@@ -215,9 +205,8 @@ def bak_up_cmd(filename: str):
 
     console = Console()
 
-    filename = expandpath(filename)
     old_bakfile = db_handler.get_bakfile_entries(filename)
-    if old_bakfile == None:
+    if old_bakfile is None:
         console.print(f"No bakfile found for {filename}")
         return True
     # Disambiguate
@@ -226,7 +215,7 @@ def bak_up_cmd(filename: str):
                            select_prompt=(
                                ("Enter a number to overwrite a .bakfile, or:\n(V)iew (L)ist (C)ancel", "C")))
 
-    if old_bakfile == None:
+    if old_bakfile is None:
         console.print("Cancelled.")
         return True
     elif not isinstance(old_bakfile, bakfile.BakFile):
@@ -238,7 +227,7 @@ def bak_up_cmd(filename: str):
     return True
 
 
-def bak_down_cmd(filename: str,
+def bak_down_cmd(filename: Path,
                  keep_bakfile: bool = False,
                  quiet: bool = False):
     """ Restore `filename` from .bakfile. Prompts if ambiguous (such as
@@ -249,7 +238,6 @@ def bak_down_cmd(filename: str,
         keep_bakfile (bool): If False, .bakfile is deleted (default: False)
     """
     console = Console()
-    filename = expandpath(filename)
     bakfile_entries = db_handler.get_bakfile_entries(filename)
     if not bakfile_entries:
         console.print(f"No bakfiles found for {filename}")
@@ -258,7 +246,7 @@ def bak_down_cmd(filename: str,
     bakfile_entry = _do_select_bakfile(bakfile_entries) if len(
         bakfile_entries) > 1 else bakfile_entries[0]
 
-    if bakfile_entry == None:
+    if bakfile_entry is None:
         console.print(f"No bakfiles found for {filename}")
         return
     elif not bakfile_entry:
@@ -293,7 +281,7 @@ def __remove_bakfiles(bakfile_entries):
         db_handler.del_bakfile_entry(entry)
 
 
-def bak_off_cmd(filename: (None, str, os.path),
+def bak_off_cmd(filename: Optional[Path],
                 quietly=False):
     """ Used when finished. Deletes `filename.bak`. Prompts if ambiguous:
             3 .bakfiles detected:
@@ -308,10 +296,9 @@ def bak_off_cmd(filename: (None, str, os.path),
         filename ([type], optional): [description]. Defaults to None.
     """
     console = Console()
-    filename = expandpath(filename)
     bakfiles = db_handler.get_bakfile_entries(filename)
-    if bakfiles == []:
-        console.print(f"No bakfiles found for {os.path.abspath(filename)}")
+    if bakfiles is []:
+        console.print(f"No bakfiles found for {filename}")
         return False
     confirm = input(
         f"Confirming: Remove {len(bakfiles)} .bakfiles for {filename}? "
@@ -334,8 +321,8 @@ def bak_print_cmd(bak_to_print: (str, bakfile.BakFile),
                                            select_prompt=(
                                                "Enter a number to select a .bakfile, or:\n(D)iff (L)ist (C)ancel",
                                                "C"))
-                                            #    "View which .bakfile? (#)",
-                                            #    "c"))
+        #    "View which .bakfile? (#)",
+        #    "c"))
         if _bak_to_print == None:
             console.print(
                 f"No bakfiles found for {os.path.abspath(bak_to_print)}")
@@ -361,18 +348,18 @@ def bak_getfile_cmd(bak_to_get: (str, bakfile.BakFile)):
     print(bak_to_get.bakfile_loc)
 
 
-def bak_diff_cmd(filename: str, command='diff'):
+def bak_diff_cmd(filename: (bakfile.BakFile, Path), command='diff'):
     # TODO write tests for this (mildly tricky)
     console = Console()
 
     bak_to_diff = filename if isinstance(filename, bakfile.BakFile) else \
-        _get_bakfile_entry(expandpath(filename),
+        _get_bakfile_entry(filename.resolve(),
                            select_prompt=(
                                ("Enter a number to diff a .bakfile, or:\n(V)iew (L)ist (C)ancel", "C")))
     if not command:
         command = cfg['bak_diff_exec'] or 'diff'
-    if bak_to_diff == None:
-        console.print(f"No bakfiles found for {os.path.abspath(filename)}")
+    if bak_to_diff is None:
+        console.print(f"No bakfiles found for {filename.resolve()}")
         return
     if not bak_to_diff:
         return
