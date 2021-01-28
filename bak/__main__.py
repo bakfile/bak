@@ -1,3 +1,4 @@
+import functools
 import os
 from datetime import datetime
 from pathlib import Path
@@ -15,6 +16,20 @@ def __print_help():
         click.echo(bak.get_help(ctx))
 
 
+def check_file_reference(args_key: str = 'filename'):
+    def on_decorator(func):
+        @functools.wraps(func)
+        def on_call(*args, **kwargs):
+            try:
+                if Path(kwargs[args_key]).expanduser().resolve().is_dir():
+                    raise IsADirectoryError('{} is a directory'.format(kwargs[args_key]))
+            except IndexError:
+                pass
+            return func(*args, **kwargs)
+        return on_call
+    return on_decorator
+
+
 basic_help_text = "bak FILENAME (creates a bakfile)\n\n" +\
     "See also: bak COMMAND --help"
 
@@ -25,6 +40,7 @@ def bak():
 
 
 @bak.command("\0", hidden=True)
+@check_file_reference()
 @click.option("--version", required=False, is_flag=True)
 @click.argument("filename", required=False, type=click.Path(exists=True))
 # Ensures that 'bak --help' is printed if it doesn't get a filename
@@ -39,6 +55,7 @@ def create(filename, version):
 
 
 @bak.command("up", help="Replace a .bakfile with a fresh copy of the parent file")
+@check_file_reference()
 @click.argument("filename", required=True, type=click.Path(exists=True))
 def bak_up(filename):
     if not filename:
@@ -85,6 +102,7 @@ def bak_off(filename, quietly):
 @click.option("--using", "--in", "--with",
               help="Program to open (default: $PAGER or less)",
               required=False, hidden=True)
+@check_file_reference()
 @click.argument("filename", required=True, type=click.Path(exists=True))
 def bak_print(filename, using):
     filename = Path(filename).expanduser().resolve()
@@ -98,6 +116,7 @@ def bak_print(filename, using):
 @click.argument("to_where_you_once_belonged",
                 required=True,
                 type=click.Path(exists=True))
+@check_file_reference()
 def bak_get(to_where_you_once_belonged):
     to_where_you_once_belonged = Path(to_where_you_once_belonged).expanduser().resolve()
     commands.bak_getfile_cmd(to_where_you_once_belonged)
@@ -108,6 +127,7 @@ def bak_get(to_where_you_once_belonged):
 @click.option("--using", "--with",
               help="Program to use instead of system diff",
               required=False)
+@check_file_reference()
 @click.argument("filename", required=True, type=click.Path(exists=True))
 def bak_diff(filename, using):
     filename = Path(filename).expanduser().resolve()
@@ -125,6 +145,7 @@ def bak_diff(filename, using):
                 #   help="List a particular file's .bakfiles",
                 required=False,
                 type=click.Path(exists=True))
+@check_file_reference()
 def bak_list(relpaths, filename):
     if filename:
         filename = Path(filename).expanduser().resolve()
@@ -132,4 +153,7 @@ def bak_list(relpaths, filename):
 
 
 if __name__ == "__main__":
-    bak()
+    try:
+        bak()
+    except IsADirectoryError as e:
+        print('Must pass a file, not a directory to bak: {}'.format(e))
