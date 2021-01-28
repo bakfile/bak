@@ -1,16 +1,17 @@
 import os
 import sqlite3
+from pathlib import Path
 
 from .bakfile import BakFile
 
 
-class BakDBHandler():
-    db_loc: str
+class BakDBHandler:
+    db_loc: Path
 
-    def __init__(self, db_loc: str):
+    def __init__(self, db_loc: Path):
         self.db_loc = db_loc
 
-        if not os.path.exists(self.db_loc):
+        if not self.db_loc.exists():
             db_conn = sqlite3.connect(self.db_loc)
             db_conn.execute("""
                             CREATE TABLE bakfiles (original_file,
