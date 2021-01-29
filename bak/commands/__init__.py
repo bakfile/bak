@@ -322,8 +322,6 @@ def bak_print_cmd(bak_to_print: (str, bakfile.BakFile),
                                            select_prompt=(
                                                "Enter a number to select a .bakfile, or:\n(D)iff (L)ist (C)ancel",
                                                "C"))
-        #    "View which .bakfile? (#)",
-        #    "c"))
         if _bak_to_print is None:
             console.print(
                 f"No bakfiles found for {os.path.abspath(bak_to_print)}")

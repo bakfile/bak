@@ -147,7 +147,6 @@ def bak_diff(filename, using):
               is_flag=True,
               default=commands.bak_list_relpaths)
 @click.argument("filename",
-                #   help="List a particular file's .bakfiles",
                 required=False,
                 type=click.Path(exists=True))
 @normalize_path()
