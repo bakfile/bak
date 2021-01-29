@@ -5,7 +5,7 @@ import click
 from click_default_group import DefaultGroup
 
 from bak import commands
-from bak import version as bak_version
+from bak import BAK_VERSION as bak_version
 
 
 def __print_help():

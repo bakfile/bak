@@ -145,7 +145,7 @@ def show_bak_list(filename: Optional[Path] = None,
         db_handler.get_all_entries()
 
     console = Console()
-    if bakfiles is []:
+    if bakfiles == []:
         console.print(f"No .bakfiles found for "
                       f"{filename}" if
                       filename else "No .bakfiles found")

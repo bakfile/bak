@@ -145,6 +145,7 @@ disable=print-statement,
         no-else-return,
         too-many-arguments,
         too-few-public-methods,
+        inconsistent-return-statements,
         fixme
 
 # Enable the message, report, category or checker with the given id(s). You can
