@@ -67,8 +67,8 @@ default_select_prompt = ("Enter a number, or: (V)iew (D)iff (C)ancel", 'C')
 def _get_bakfile_entry(filename: Path,
                        select_prompt=default_select_prompt,
                        err=True):
-    entries = db_handler.get_bakfile_entries(filename.resolve())
-    if (entries is False) or len(entries) == 0:
+    entries = db_handler.get_bakfile_entries(filename)
+    if not entries:
         return None
     # If there's only one bakfile corresponding to filename, return that.
     # If there's more than one, disambiguate.
@@ -166,7 +166,7 @@ def show_bak_list(filename: Optional[Path] = None,
     i = 1
     for _bakfile in bakfiles:
         table.add_row(str(i),
-                      (filename.resolve()) if
+                      os.path.relpath(filename) if
                       relative_paths else
                       _bakfile.orig_abspath,
                       _bakfile.date_created.split('.')[0],
@@ -355,13 +355,13 @@ def bak_diff_cmd(filename: (bakfile.BakFile, Path), command='diff'):
     console = Console()
 
     bak_to_diff = filename if isinstance(filename, bakfile.BakFile) else \
-        _get_bakfile_entry(filename.resolve(),
+        _get_bakfile_entry(filename,
                            select_prompt=(
                                ("Enter a number to diff a .bakfile, or:\n(V)iew (L)ist (C)ancel", "C")))
     if not command:
         command = cfg['bak_diff_exec'] or 'diff'
     if bak_to_diff is None:
-        console.print(f"No bakfiles found for {filename.resolve()}")
+        console.print(f"No bakfiles found for {filename}")
         return
     if not bak_to_diff:
         return

@@ -1,3 +1,4 @@
+import functools
 import os
 from datetime import datetime
 from pathlib import Path
@@ -15,6 +16,26 @@ def __print_help():
         click.echo(bak.get_help(ctx))
 
 
+def normalize_path(args_key: str = 'filename'):
+    def on_decorator(func):
+        @functools.wraps(func)
+        def on_call(*args, **kwargs):
+            try:
+                # expand path
+                arg = Path(kwargs[args_key]).expanduser().resolve()
+                if arg.is_dir():
+                    click.echo(f"Error: bak cannot operate on directories ({arg})")
+                    return
+                else:
+                    kwargs[args_key] = arg
+            # Account for optional params and params that default to None or False
+            except (IndexError, KeyError, TypeError):
+                pass
+            return func(*args, **kwargs)
+        return on_call
+    return on_decorator
+
+
 basic_help_text = "bak FILENAME (creates a bakfile)\n\n" +\
     "See also: bak COMMAND --help"
 
@@ -25,6 +46,7 @@ def bak():
 
 
 @bak.command("\0", hidden=True)
+@normalize_path()
 @click.option("--version", required=False, is_flag=True)
 @click.argument("filename", required=False, type=click.Path(exists=True))
 # Ensures that 'bak --help' is printed if it doesn't get a filename
@@ -39,6 +61,7 @@ def create(filename, version):
 
 
 @bak.command("up", help="Replace a .bakfile with a fresh copy of the parent file")
+@normalize_path()
 @click.argument("filename", required=True, type=click.Path(exists=True))
 def bak_up(filename):
     if not filename:
@@ -85,6 +108,7 @@ def bak_off(filename, quietly):
 @click.option("--using", "--in", "--with",
               help="Program to open (default: $PAGER or less)",
               required=False, hidden=True)
+@normalize_path()
 @click.argument("filename", required=True, type=click.Path(exists=True))
 def bak_print(filename, using):
     filename = Path(filename).expanduser().resolve()
@@ -98,6 +122,7 @@ def bak_print(filename, using):
 @click.argument("to_where_you_once_belonged",
                 required=True,
                 type=click.Path(exists=True))
+@normalize_path()
 def bak_get(to_where_you_once_belonged):
     to_where_you_once_belonged = Path(to_where_you_once_belonged).expanduser().resolve()
     commands.bak_getfile_cmd(to_where_you_once_belonged)
@@ -108,6 +133,7 @@ def bak_get(to_where_you_once_belonged):
 @click.option("--using", "--with",
               help="Program to use instead of system diff",
               required=False)
+@normalize_path()
 @click.argument("filename", required=True, type=click.Path(exists=True))
 def bak_diff(filename, using):
     filename = Path(filename).expanduser().resolve()
@@ -125,6 +151,7 @@ def bak_diff(filename, using):
                 #   help="List a particular file's .bakfiles",
                 required=False,
                 type=click.Path(exists=True))
+@normalize_path()
 def bak_list(relpaths, filename):
     if filename:
         filename = Path(filename).expanduser().resolve()
