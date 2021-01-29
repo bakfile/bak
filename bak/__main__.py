@@ -1,8 +1,5 @@
 import functools
-import os
-from datetime import datetime
 from pathlib import Path
-from shutil import copy2
 
 import click
 from click_default_group import DefaultGroup
@@ -36,11 +33,11 @@ def normalize_path(args_key: str = 'filename'):
     return on_decorator
 
 
-basic_help_text = "bak FILENAME (creates a bakfile)\n\n" +\
+BASIC_HELP_TEXT = "bak FILENAME (creates a bakfile)\n\n" +\
     "See also: bak COMMAND --help"
 
 
-@click.group(cls=DefaultGroup, default='\0', default_if_no_args=True, help=basic_help_text)
+@click.group(cls=DefaultGroup, default='\0', default_if_no_args=True, help=BASIC_HELP_TEXT)
 def bak():
     pass
 

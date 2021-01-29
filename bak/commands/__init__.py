@@ -3,11 +3,10 @@ import sqlite3
 from pathlib import Path
 
 from datetime import datetime
-from typing import Optional
 from shutil import copy2
 from subprocess import call
 from sys import stderr, stdout
-from typing import List
+from typing import List, Optional
 from warnings import warn
 
 import click
@@ -125,8 +124,8 @@ def _do_select_bakfile(bakfiles: List[bakfile.BakFile],
                     continue
                 else:
                     return bakfiles[idx]
-            except (ValueError, TypeError) as e:
-                warn(e)
+            except (ValueError, TypeError) as error:
+                warn(error)
                 console.print("Invalid input. Aborting.")
                 return False
             get_choice()
@@ -325,7 +324,7 @@ def bak_print_cmd(bak_to_print: (str, bakfile.BakFile),
                                                "C"))
         #    "View which .bakfile? (#)",
         #    "c"))
-        if _bak_to_print == None:
+        if _bak_to_print is None:
             console.print(
                 f"No bakfiles found for {os.path.abspath(bak_to_print)}")
         else:
@@ -344,7 +343,7 @@ def bak_getfile_cmd(bak_to_get: (str, bakfile.BakFile)):
     if not isinstance(bak_to_get, bakfile.BakFile):
         filename = bak_to_get
         bak_to_get = _get_bakfile_entry(bak_to_get, err=True)
-        if bak_to_get == None:
+        if bak_to_get is None:
             console.print(f"No bakfiles found for {os.path.abspath(filename)}")
             return  # _get_bakfile_entry() handles failures, so just exit
     print(bak_to_get.bakfile_loc)
