@@ -21,7 +21,8 @@ def normalize_path(args_key: str = 'filename'):
                 # expand path
                 arg = Path(kwargs[args_key]).expanduser().resolve()
                 if arg.is_dir():
-                    click.echo(f"Error: bak cannot operate on directories ({arg})")
+                    click.echo(
+                        f"Error: bak cannot operate on directories ({arg})")
                     return
                 else:
                     kwargs[args_key] = arg
@@ -121,7 +122,8 @@ def bak_print(filename, using):
                 type=click.Path(exists=True))
 @normalize_path()
 def bak_get(to_where_you_once_belonged):
-    to_where_you_once_belonged = Path(to_where_you_once_belonged).expanduser().resolve()
+    to_where_you_once_belonged = Path(
+        to_where_you_once_belonged).expanduser().resolve()
     commands.bak_getfile_cmd(to_where_you_once_belonged)
 
 

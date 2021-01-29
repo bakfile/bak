@@ -57,7 +57,7 @@ class BakDBHandler:
     # TODO handle disambiguation
     def get_bakfile_entries(self, filename):
         with sqlite3.connect(self.db_loc) as db_conn:
-            cursor= db_conn.execute(
+            cursor = db_conn.execute(
                 """
                     SELECT * FROM bakfiles WHERE original_abspath=:orig
                 """, (os.path.abspath(os.path.expanduser(filename)),))
