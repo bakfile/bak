@@ -299,7 +299,7 @@ def bak_off_cmd(filename: Optional[Path],
     """
     console = Console()
     bakfiles = db_handler.get_bakfile_entries(filename)
-    if bakfiles is []:
+    if not bakfiles:
         console.print(f"No bakfiles found for {filename}")
         return False
     confirm = input(

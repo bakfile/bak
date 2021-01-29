@@ -59,7 +59,7 @@ def bak_up(filename):
               is_flag=True,
               default=False,
               help="No confirmation prompt")
-@click.argument("filename", required=True, type=click.Path(exists=True))
+@click.argument("filename", required=True)
 def bak_down(filename, keep, quietly):
     if not filename:
         click.echo("A filename or operation is required.\n"
@@ -73,7 +73,7 @@ def bak_down(filename, keep, quietly):
               is_flag=True,
               default=False,
               help="Delete all related .bakfiles without confirming")
-@click.argument("filename", required=True, type=click.Path(exists=True))
+@click.argument("filename", required=True)
 def bak_off(filename, quietly):
     filename = Path(filename).expanduser().resolve()
     if not commands.bak_off_cmd(filename, quietly):
