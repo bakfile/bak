@@ -1,14 +1,11 @@
 import functools
-import os
-from datetime import datetime
 from pathlib import Path
-from shutil import copy2
 
 import click
 from click_default_group import DefaultGroup
 
 from bak import commands
-from bak import version as bak_version
+from bak import BAK_VERSION as bak_version
 
 
 def __print_help():
@@ -24,7 +21,8 @@ def normalize_path(args_key: str = 'filename'):
                 # expand path
                 arg = Path(kwargs[args_key]).expanduser().resolve()
                 if arg.is_dir():
-                    click.echo(f"Error: bak cannot operate on directories ({arg})")
+                    click.echo(
+                        f"Error: bak cannot operate on directories ({arg})")
                     return
                 else:
                     kwargs[args_key] = arg
@@ -36,11 +34,11 @@ def normalize_path(args_key: str = 'filename'):
     return on_decorator
 
 
-basic_help_text = "bak FILENAME (creates a bakfile)\n\n" +\
+BASIC_HELP_TEXT = "bak FILENAME (creates a bakfile)\n\n" +\
     "See also: bak COMMAND --help"
 
 
-@click.group(cls=DefaultGroup, default='\0', default_if_no_args=True, help=basic_help_text)
+@click.group(cls=DefaultGroup, default='\0', default_if_no_args=True, help=BASIC_HELP_TEXT)
 def bak():
     pass
 
@@ -124,7 +122,8 @@ def bak_print(filename, using):
                 type=click.Path(exists=True))
 @normalize_path()
 def bak_get(to_where_you_once_belonged):
-    to_where_you_once_belonged = Path(to_where_you_once_belonged).expanduser().resolve()
+    to_where_you_once_belonged = Path(
+        to_where_you_once_belonged).expanduser().resolve()
     commands.bak_getfile_cmd(to_where_you_once_belonged)
 
 
@@ -148,7 +147,6 @@ def bak_diff(filename, using):
               is_flag=True,
               default=commands.bak_list_relpaths)
 @click.argument("filename",
-                #   help="List a particular file's .bakfiles",
                 required=False,
                 type=click.Path(exists=True))
 @normalize_path()
