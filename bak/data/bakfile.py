@@ -14,13 +14,15 @@ class BakFile:
                  orig_abspath: Path,
                  bakfile: Path,
                  created: datetime,
-                 modified: datetime):
+                 modified: datetime,
+                 restored: bool):
         self.original_file, \
             self.orig_abspath, \
             self.bakfile_loc, \
             self.date_created, \
-            self.date_modified = \
-            original, orig_abspath, bakfile, created, modified
+            self.date_modified, \
+            self.restored = \
+            original, orig_abspath, bakfile, created, modified, restored
 
     def export(self):
         return((
@@ -28,5 +30,6 @@ class BakFile:
             str(self.orig_abspath),
             str(self.bakfile_loc),
             self.date_created,
-            self.date_modified
+            self.date_modified,
+            self.restored
         ))

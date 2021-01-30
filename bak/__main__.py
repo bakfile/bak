@@ -1,12 +1,28 @@
 import functools
+from os import environ
 from pathlib import Path
 
 import click
 from click_default_group import DefaultGroup
+from config import Config, KeyNotFoundError
+
 
 from bak import commands
 from bak import BAK_VERSION as bak_version
 
+# TODO #53
+try:
+    config_dir = Path(environ["XDG_CONFIG_HOME"]).expanduser().resolve()
+except KeyError:
+    config_dir = Path("~/.config").expanduser().resolve()
+
+config_file = config_dir / 'bak.cfg'
+cfg = Config(str(config_file))
+
+try:
+    bak_list_colors = cfg['bak_list_colors']
+except KeyNotFoundError:
+    bak_list_colors = False
 
 def __print_help():
     with click.get_current_context() as ctx:
@@ -154,19 +170,25 @@ def bak_diff(filename, using):
 
 @bak.command("list",
              help="List all .bakfiles, or a particular file's")
-@click.option("--relpaths",
+@click.option("--colors/--nocolors", "-c/-C", help="Colorize output", is_flag=True, default=bak_list_colors)
+@click.option("--relpaths", "--rel", "-r",
               help="Display relative paths instead of abspaths",
               required=False,
               is_flag=True,
               default=commands.bak_list_relpaths)
+@click.option("--compare", "--diff", "-d",
+              help="Compare .bakfiles with current file, identify exact copies",
+              required=False,
+              is_flag=True,
+              default=False)
 @click.argument("filename",
                 required=False,
                 type=click.Path(exists=True))
 @normalize_path()
-def bak_list(relpaths, filename):
+def bak_list(colors, relpaths, compare, filename):
     if filename:
         filename = Path(filename).expanduser().resolve()
-    commands.show_bak_list(filename=filename or None, relative_paths=relpaths)
+    commands.show_bak_list(filename=filename or None, relative_paths=relpaths, colors=colors, compare=compare)
 
 
 if __name__ == "__main__":
