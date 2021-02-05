@@ -1,8 +1,7 @@
 import os
 import sqlite3
-from pathlib import Path
-
 from datetime import datetime
+from pathlib import Path
 from shutil import copy2
 from subprocess import call
 from sys import stderr, stdout
@@ -11,14 +10,13 @@ from warnings import warn
 
 import click
 from config import Config
-
 from rich import box
 from rich.color import Color
 from rich.console import Console
 from rich.style import Style
 from rich.table import Table
 
-from bak.data import bakfile, bak_db
+from bak.data import bak_db, bakfile
 
 # TODO: customizable file extension
 
@@ -145,7 +143,7 @@ def show_bak_list(filename: Optional[Path] = None,
         db_handler.get_all_entries()
 
     console = Console()
-    if bakfiles == []:
+    if not bakfiles:
         console.print(f"No .bakfiles found for "
                       f"{filename}" if
                       filename else "No .bakfiles found")
@@ -165,7 +163,7 @@ def show_bak_list(filename: Optional[Path] = None,
     i = 1
     for _bakfile in bakfiles:
         table.add_row(str(i),
-                      os.path.relpath(filename) if
+                      filename.relative_to(Path.cwd()) if
                       relative_paths else
                       _bakfile.orig_abspath,
                       _bakfile.date_created.split('.')[0],
@@ -229,14 +227,17 @@ def bak_up_cmd(filename: Path):
 
 
 def bak_down_cmd(filename: Path,
+                 destination: Optional[Path],
                  keep_bakfile: bool = False,
                  quiet: bool = False):
     """ Restore `filename` from .bakfile. Prompts if ambiguous (such as
         when there are multiple .bakfiles of `filename`)
 
     Args:
-        filename (str|os.path)
+        filename (str|Path)
         keep_bakfile (bool): If False, .bakfile is deleted (default: False)
+        quiet (bool): If True, does not ask user to confirm
+        destination (None|Path): destination path to restore to
     """
     console = Console()
     bakfile_entries = db_handler.get_bakfile_entries(filename)
@@ -252,33 +253,35 @@ def bak_down_cmd(filename: Path,
         return
     elif not bakfile_entry:
         return
+    if not destination:
+        destination = Path(bakfile_entry.orig_abspath).expanduser()
 
     if quiet:
         confirm = 'y'
     else:
-        confirm_prompt = f"Confirm: Restore {filename} and erase bakfiles?\n" \
+        if destination != bakfile_entry.orig_abspath:
+            if destination.exists():
+                confirm = click.confirm(f"Overwrite {destination}?")
+        
+        confirm_prompt = f"Confirm: Restore {filename} to {destination} and erase bakfiles?" \
             if not keep_bakfile else \
-            f"Confirm: Restore {filename} and keep bakfiles?\n"
-        confirm_prompt += "(y/n)"
-        confirm = click.prompt(confirm_prompt, default='n')
-    if confirm.lower()[0] != 'y':
+            f"Confirm: Restore {filename} to {destination} and keep bakfiles?"
+        confirm = click.confirm(confirm_prompt, default=False)
+    if not confirm:
         console.print("Cancelled.")
         return
     if not keep_bakfile:
-        os.rename(bakfile_entry.bakfile_loc, bakfile_entry.orig_abspath)
+        Path(bakfile_entry.bakfile_loc).rename(destination)
         for entry in bakfile_entries:
-            # bakfile_entry's bakfile has already been moved
-            # trying to rm it would print a failure
-            if entry != bakfile_entry:
-                os.remove(entry.bakfile_loc)
+            Path(entry.bakfile_loc).unlink(missing_ok=True)
             db_handler.del_bakfile_entry(entry)
     else:
-        copy2(bakfile_entry.bakfile_loc, bakfile_entry.orig_abspath)
+        copy2(bakfile_entry.bakfile_loc, destination)
 
 
 def __remove_bakfiles(bakfile_entries):
     for entry in bakfile_entries:
-        os.remove(entry.bakfile_loc)
+        Path(entry.bakfile_loc).unlink()
         db_handler.del_bakfile_entry(entry)
 
 
@@ -324,7 +327,7 @@ def bak_print_cmd(bak_to_print: (str, bakfile.BakFile),
                                                "C"))
         if _bak_to_print is None:
             console.print(
-                f"No bakfiles found for {os.path.abspath(bak_to_print)}")
+                f"No bakfiles found for {Path(bak_to_print).resolve()}")
         else:
             bak_to_print = _bak_to_print
         if not isinstance(bak_to_print, bakfile.BakFile):
@@ -342,7 +345,7 @@ def bak_getfile_cmd(bak_to_get: (str, bakfile.BakFile)):
         filename = bak_to_get
         bak_to_get = _get_bakfile_entry(bak_to_get, err=True)
         if bak_to_get is None:
-            console.print(f"No bakfiles found for {os.path.abspath(filename)}")
+            console.print(f"No bakfiles found for {Path(filename).resolve()}")
             return  # _get_bakfile_entry() handles failures, so just exit
     print(bak_to_get.bakfile_loc)
 
