@@ -143,7 +143,7 @@ def show_bak_list(filename: Optional[Path] = None,
         db_handler.get_all_entries()
 
     console = Console()
-    if bakfiles == []:
+    if not bakfiles:
         console.print(f"No .bakfiles found for "
                       f"{filename}" if
                       filename else "No .bakfiles found")
@@ -163,7 +163,7 @@ def show_bak_list(filename: Optional[Path] = None,
     i = 1
     for _bakfile in bakfiles:
         table.add_row(str(i),
-                      os.path.relpath(filename) if
+                      filename.relative_to(Path.cwd()) if
                       relative_paths else
                       _bakfile.orig_abspath,
                       _bakfile.date_created.split('.')[0],
@@ -234,7 +234,7 @@ def bak_down_cmd(filename: Path,
         when there are multiple .bakfiles of `filename`)
 
     Args:
-        filename (str|os.path)
+        filename (str|Path)
         keep_bakfile (bool): If False, .bakfile is deleted (default: False)
         quiet (bool): If True, does not ask user to confirm
         destination (None|Path): destination path to restore to
@@ -268,12 +268,9 @@ def bak_down_cmd(filename: Path,
     if not destination:
         destination = bakfile_entry.orig_abspath
     if not keep_bakfile:
-        os.rename(bakfile_entry.bakfile_loc, destination)
+        bakfile_entry.bakfile_loc.rename(destination)
         for entry in bakfile_entries:
-            # bakfile_entry's bakfile has already been moved
-            # trying to rm it would print a failure
-            if entry != bakfile_entry:
-                os.remove(entry.bakfile_loc)
+            Path(entry.bakfile_loc).unlink(missing_ok=True)
             db_handler.del_bakfile_entry(entry)
     else:
         copy2(bakfile_entry.bakfile_loc, destination)
@@ -281,7 +278,7 @@ def bak_down_cmd(filename: Path,
 
 def __remove_bakfiles(bakfile_entries):
     for entry in bakfile_entries:
-        os.remove(entry.bakfile_loc)
+        Path(entry.bakfile_loc).unlink()
         db_handler.del_bakfile_entry(entry)
 
 
@@ -327,7 +324,7 @@ def bak_print_cmd(bak_to_print: (str, bakfile.BakFile),
                                                "C"))
         if _bak_to_print is None:
             console.print(
-                f"No bakfiles found for {os.path.abspath(bak_to_print)}")
+                f"No bakfiles found for {Path(bak_to_print).resolve()}")
         else:
             bak_to_print = _bak_to_print
         if not isinstance(bak_to_print, bakfile.BakFile):
@@ -345,7 +342,7 @@ def bak_getfile_cmd(bak_to_get: (str, bakfile.BakFile)):
         filename = bak_to_get
         bak_to_get = _get_bakfile_entry(bak_to_get, err=True)
         if bak_to_get is None:
-            console.print(f"No bakfiles found for {os.path.abspath(filename)}")
+            console.print(f"No bakfiles found for {Path(filename).resolve()}")
             return  # _get_bakfile_entry() handles failures, so just exit
     print(bak_to_get.bakfile_loc)
 
