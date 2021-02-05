@@ -185,7 +185,8 @@ def show_bak_list(filename: Optional[Path] = None,
             caption.append('\n')
         caption.append('   (files may have been edited since restoration)', style='dim italic')
     else:
-        caption = '-- oldest .bak   ++ newest .bak   ** restored' + ('  $ current version of file' if compare else '') +\
+        caption = '-- oldest .bak   ++ newest .bak   ** restored' + \
+                  ('  $ current version of file' if compare else '')+ \
                   '\n   (files may have been edited since restoration)'
 
     _title = f".bakfiles of {filename}" if \
@@ -400,11 +401,12 @@ def bak_down_cmd(filename: Path,
             db_handler.del_bakfile_entry(entry)
     else:
         copy2(bakfile_entry.bakfile_loc, bakfile_entry.orig_abspath)
-        for entry in bakfile_entries:
-            if entry.restored:
-                if entry.bakfile_loc != bakfile_entry.bakfile_loc:
-                    db_handler.set_restored_flag(entry, False)
-        db_handler.set_restored_flag(bakfile_entry, True)
+        if not new_destination:
+            for entry in bakfile_entries:
+                if entry.restored:
+                    if entry.bakfile_loc != bakfile_entry.bakfile_loc:
+                        db_handler.set_restored_flag(entry, False)
+            db_handler.set_restored_flag(bakfile_entry, True)
 
 
 def __remove_bakfiles(bakfile_entries):

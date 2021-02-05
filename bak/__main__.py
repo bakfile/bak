@@ -1,5 +1,4 @@
 import functools
-from os import environ
 from pathlib import Path
 
 import click
