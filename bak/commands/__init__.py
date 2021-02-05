@@ -254,17 +254,20 @@ def bak_down_cmd(filename: Path,
     elif not bakfile_entry:
         return
     if not destination:
-        destination = bakfile_entry.orig_abspath
+        destination = Path(bakfile_entry.orig_abspath).expanduser()
 
     if quiet:
         confirm = 'y'
     else:
-        confirm_prompt = f"Confirm: Restore {filename} to {destination} and erase bakfiles?\n" \
+        if destination != bakfile_entry.orig_abspath:
+            if destination.exists():
+                confirm = click.confirm(f"Overwrite {destination}?")
+        
+        confirm_prompt = f"Confirm: Restore {filename} to {destination} and erase bakfiles?" \
             if not keep_bakfile else \
-            f"Confirm: Restore {filename} to {destination} and keep bakfiles?\n"
-        confirm_prompt += "(y/n)"
-        confirm = click.prompt(confirm_prompt, default='n')
-    if confirm.lower()[0] != 'y':
+            f"Confirm: Restore {filename} to {destination} and keep bakfiles?"
+        confirm = click.confirm(confirm_prompt, default=False)
+    if not confirm:
         console.print("Cancelled.")
         return
     if not keep_bakfile:
