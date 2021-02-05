@@ -34,7 +34,7 @@ def normalize_path(args_key: str = 'filename'):
     return on_decorator
 
 
-BASIC_HELP_TEXT = "bak FILENAME (creates a bakfile)\n\n" +\
+BASIC_HELP_TEXT = "bak FILENAME (creates a bakfile)\n\nalias: bak create\n\n" +\
     "See also: bak COMMAND --help"
 
 
@@ -47,8 +47,18 @@ def bak():
 @normalize_path()
 @click.option("--version", required=False, is_flag=True)
 @click.argument("filename", required=False, type=click.Path(exists=True))
-# Ensures that 'bak --help' is printed if it doesn't get a filename
+def _create(filename, version):
+    create_bak_cmd(filename, version)
+
+@bak.command("create", hidden=True)
+@normalize_path()
+@click.option("--version", required=False, is_flag=True)
+@click.argument("filename", required=False, type=click.Path(exists=True))
 def create(filename, version):
+    create_bak_cmd(filename, version)
+
+# Ensures that 'bak --help' is printed if it doesn't get a filename
+def create_bak_cmd(filename, version):
     if version:
         click.echo(f"bak version {bak_version}")
     elif not filename:
