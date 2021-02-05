@@ -354,6 +354,7 @@ def bak_down_cmd(filename: Path,
         destination (None|Path): destination path to restore to
     """
     console = Console()
+    new_destination = False
     bakfile_entries = db_handler.get_bakfile_entries(filename)
     if not bakfile_entries:
         console.print(f"No bakfiles found for {filename}")
@@ -368,18 +369,26 @@ def bak_down_cmd(filename: Path,
     elif not bakfile_entry:
         return
     if not destination:
-        destination = Path(bakfile_entry.orig_abspath).expanduser()
+        destination = Path(bakfile_entry.orig_abspath)
+    else:
+        new_destination = destination.expanduser() != bakfile_entry.orig_abspath
 
     if quiet:
         confirm = 'y'
     else:
-        if destination != bakfile_entry.orig_abspath:
+        if new_destination:
             if destination.exists():
                 confirm = click.confirm(f"Overwrite {destination}?")
+                
+        confirm_prompt = f"Confirm: Restore {filename}"
+        confirm_prompt += f" to {destination}" if new_destination else ""
+        erase = 'keep' if keep_bakfile else 'erase'
+        confirm_prompt += f" and {erase} bakfiles?"
         
-        confirm_prompt = f"Confirm: Restore {filename} to {destination} and erase bakfiles?" \
-            if not keep_bakfile else \
-            f"Confirm: Restore {filename} to {destination} and keep bakfiles?"
+        # confirm_prompt = f"Confirm: Restore {filename}"\
+        #     f"{(' to' + destination) if new_destination else ''} and erase bakfiles?" \
+        #     if not keep_bakfile else \
+        #     f"Confirm: Restore {filename}{(' to' + destination) if new_destination else ''} and keep bakfiles?"
         confirm = click.confirm(confirm_prompt, default=False)
     if not confirm:
         console.print("Cancelled.")
