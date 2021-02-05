@@ -7,21 +7,31 @@ from .bakfile import BakFile
 
 class BakDBHandler:
     db_loc: Path
+    COL_NAMES = ['original_file', 'original_abspath', 'bakfile', 'date_created', 'date_modified', 'restored']
 
     def __init__(self, db_loc: Path):
         self.db_loc = db_loc
 
         if not self.db_loc.exists():
-            db_conn = sqlite3.connect(self.db_loc)
-            db_conn.execute("""
-                            CREATE TABLE bakfiles (original_file,
-                                                   original_abspath,
-                                                   bakfile,
-                                                   date_created,
-                                                   date_modified,
-                                                   restored)
-                            """)
-            db_conn.commit()
+            with sqlite3.connect(self.db_loc) as db_conn:
+                db_conn.execute("""
+                                CREATE TABLE bakfiles (original_file,
+                                                        original_abspath,
+                                                        bakfile,
+                                                        date_created,
+                                                        date_modified,
+                                                        restored)
+                                """)
+                db_conn.commit()
+        else:
+            with sqlite3.connect(self.db_loc) as db_conn:
+                cur = db_conn.cursor()
+                cur.execute("SELECT * from bakfiles")
+                db_cols = [name[0] for name in cur.description]
+                for col in self.COL_NAMES:
+                    if col not in db_cols:
+                        cur.execute(f"ALTER TABLE bakfiles ADD COLUMN {col}")
+                        db_conn.commit()
 
     def create_bakfile_entry(self, bakfile_obj: BakFile):
         with sqlite3.connect(self.db_loc) as db_conn:

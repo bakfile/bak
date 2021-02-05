@@ -4,23 +4,15 @@ from pathlib import Path
 
 import click
 from click_default_group import DefaultGroup
-from config import Config, KeyNotFoundError
+from config import KeyNotFoundError
 
 
 from bak import commands
 from bak import BAK_VERSION as bak_version
-
-# TODO #53
-try:
-    config_dir = Path(environ["XDG_CONFIG_HOME"]).expanduser().resolve()
-except KeyError:
-    config_dir = Path("~/.config").expanduser().resolve()
-
-config_file = config_dir / 'bak.cfg'
-cfg = Config(str(config_file))
+from bak.configuration.cfg import bak_cfg
 
 try:
-    bak_list_colors = cfg['bak_list_colors']
+    bak_list_colors = bak_cfg['bak_list_colors']
 except KeyNotFoundError:
     bak_list_colors = False
 

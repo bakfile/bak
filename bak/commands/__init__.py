@@ -18,21 +18,9 @@ from rich.style import Style
 from rich.table import Table
 from rich.text import Text
 
+from bak.configuration.cfg import data_dir
+from bak.configuration.cfg import bak_cfg as cfg
 from bak.data import bak_db, bakfile
-
-# TODO: customizable file extension
-
-try:
-    data_dir = Path(os.environ["XDG_DATA_HOME"]).expanduser().resolve()
-except KeyError:
-    data_dir = Path("~/.local/share").expanduser().resolve()
-try:
-    config_dir = Path(os.environ["XDG_CONFIG_HOME"]).expanduser().resolve()
-except KeyError:
-    config_dir = Path("~/.config").expanduser().resolve()
-
-config_file = config_dir / 'bak.cfg'
-cfg = Config(str(config_file))
 
 bak_dir = cfg['bakfile_location'] or data_dir / 'bak' / 'bakfiles'
 bak_db_loc = cfg['bak_database_location'] or data_dir / 'bak' / 'bak.db'
