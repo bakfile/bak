@@ -1,8 +1,7 @@
 import os
 import sqlite3
-from pathlib import Path
-
 from datetime import datetime
+from pathlib import Path
 from shutil import copy2
 from subprocess import call
 from sys import stderr, stdout
@@ -11,14 +10,13 @@ from warnings import warn
 
 import click
 from config import Config
-
 from rich import box
 from rich.color import Color
 from rich.console import Console
 from rich.style import Style
 from rich.table import Table
 
-from bak.data import bakfile, bak_db
+from bak.data import bak_db, bakfile
 
 # TODO: customizable file extension
 
@@ -229,6 +227,7 @@ def bak_up_cmd(filename: Path):
 
 
 def bak_down_cmd(filename: Path,
+                 destination: Optional[Path],
                  keep_bakfile: bool = False,
                  quiet: bool = False):
     """ Restore `filename` from .bakfile. Prompts if ambiguous (such as
@@ -237,6 +236,8 @@ def bak_down_cmd(filename: Path,
     Args:
         filename (str|os.path)
         keep_bakfile (bool): If False, .bakfile is deleted (default: False)
+        quiet (bool): If True, does not ask user to confirm
+        destination (None|Path): destination path to restore to
     """
     console = Console()
     bakfile_entries = db_handler.get_bakfile_entries(filename)
@@ -256,16 +257,18 @@ def bak_down_cmd(filename: Path,
     if quiet:
         confirm = 'y'
     else:
-        confirm_prompt = f"Confirm: Restore {filename} and erase bakfiles?\n" \
+        confirm_prompt = f"Confirm: Restore {filename} to {destination} and erase bakfiles?\n" \
             if not keep_bakfile else \
-            f"Confirm: Restore {filename} and keep bakfiles?\n"
+            f"Confirm: Restore {filename} to {destination} and keep bakfiles?\n"
         confirm_prompt += "(y/n)"
         confirm = click.prompt(confirm_prompt, default='n')
     if confirm.lower()[0] != 'y':
         console.print("Cancelled.")
         return
+    if not destination:
+        destination = bakfile_entry.orig_abspath
     if not keep_bakfile:
-        os.rename(bakfile_entry.bakfile_loc, bakfile_entry.orig_abspath)
+        os.rename(bakfile_entry.bakfile_loc, destination)
         for entry in bakfile_entries:
             # bakfile_entry's bakfile has already been moved
             # trying to rm it would print a failure
@@ -273,7 +276,7 @@ def bak_down_cmd(filename: Path,
                 os.remove(entry.bakfile_loc)
             db_handler.del_bakfile_entry(entry)
     else:
-        copy2(bakfile_entry.bakfile_loc, bakfile_entry.orig_abspath)
+        copy2(bakfile_entry.bakfile_loc, destination)
 
 
 def __remove_bakfiles(bakfile_entries):

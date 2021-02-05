@@ -80,13 +80,16 @@ def bak_up(filename):
               is_flag=True,
               default=False,
               help="No confirmation prompt")
+@click.option('-d', '--destination', default=None, type=str)
 @click.argument("filename", required=True)
-def bak_down(filename, keep, quietly):
+def bak_down(filename: str, keep: bool, quietly: bool, destination: str):
     if not filename:
         click.echo("A filename or operation is required.\n"
                    "\tbak --help")
     filename = Path(filename).expanduser().resolve()
-    commands.bak_down_cmd(filename, keep, quietly)
+    if destination:
+        destination = Path(destination).expanduser().resolve()
+    commands.bak_down_cmd(filename, destination, keep, quietly)
 
 
 @bak.command("off", help="Use when finished to delete .bakfiles")
