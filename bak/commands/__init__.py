@@ -253,6 +253,8 @@ def bak_down_cmd(filename: Path,
         return
     elif not bakfile_entry:
         return
+    if not destination:
+        destination = bakfile_entry.orig_abspath
 
     if quiet:
         confirm = 'y'
@@ -265,10 +267,8 @@ def bak_down_cmd(filename: Path,
     if confirm.lower()[0] != 'y':
         console.print("Cancelled.")
         return
-    if not destination:
-        destination = bakfile_entry.orig_abspath
     if not keep_bakfile:
-        bakfile_entry.bakfile_loc.rename(destination)
+        Path(bakfile_entry.bakfile_loc).rename(destination)
         for entry in bakfile_entries:
             Path(entry.bakfile_loc).unlink(missing_ok=True)
             db_handler.del_bakfile_entry(entry)
