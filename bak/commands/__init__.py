@@ -18,12 +18,11 @@ from rich.style import Style
 from rich.table import Table
 from rich.text import Text
 
-from bak.configuration.cfg import data_dir
-from bak.configuration.cfg import bak_cfg as cfg
+from bak.configuration import bak_cfg as cfg
 from bak.data import bak_db, bakfile
 
-bak_dir = cfg['bakfile_location'] or data_dir / 'bak' / 'bakfiles'
-bak_db_loc = cfg['bak_database_location'] or data_dir / 'bak' / 'bak.db'
+bak_dir = cfg['bakfile_location'] or cfg.data_dir / 'bak' / 'bakfiles'
+bak_db_loc = cfg['bak_database_location'] or cfg.data_dir / 'bak' / 'bak.db'
 
 bak_list_relpaths = cfg['bak_list_relative_paths']
 bak_list_colors = cfg['bak_list_colors']
@@ -380,16 +379,12 @@ def bak_down_cmd(filename: Path,
         if new_destination:
             if destination.exists():
                 confirm = click.confirm(f"Overwrite {destination}?")
-                
+
         confirm_prompt = f"Confirm: Restore {filename}"
         confirm_prompt += f" to {destination}" if new_destination else ""
         erase = 'keep' if keep_bakfile else 'erase'
         confirm_prompt += f" and {erase} bakfiles?"
-        
-        # confirm_prompt = f"Confirm: Restore {filename}"\
-        #     f"{(' to' + destination) if new_destination else ''} and erase bakfiles?" \
-        #     if not keep_bakfile else \
-        #     f"Confirm: Restore {filename}{(' to' + destination) if new_destination else ''} and keep bakfiles?"
+
         confirm = click.confirm(confirm_prompt, default=False)
     if not confirm:
         console.print("Cancelled.")

@@ -8,7 +8,7 @@ from config import KeyNotFoundError
 
 from bak import commands
 from bak import BAK_VERSION as bak_version
-from bak.configuration.cfg import bak_cfg
+from bak.configuration import bak_cfg
 
 try:
     bak_list_colors = bak_cfg['bak_list_colors']
