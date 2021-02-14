@@ -53,6 +53,8 @@ All of **bak**'s commands will disambiguate between multiple copies of the same 
 
 ## Installation and Requirements
 
+**NOTE:** This repository's default branch has been changed to `unstable` for development. For general use, I advise installing the `master` branch. This will be easier when I get around to proper packaging.
+
 Requires Python3.6 or higher, presumably. Python3.5 has been EOL for 3 months, as of this writing, so if your distro is pegged to it... ouch.
 
 ### Installation
