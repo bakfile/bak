@@ -270,13 +270,11 @@ def bak_down_cmd(filename: Path,
     if not confirm:
         console.print("Cancelled.")
         return
+    copy2(bakfile_entry.bakfile_loc, destination)
     if not keep_bakfile:
-        Path(bakfile_entry.bakfile_loc).rename(destination)
         for entry in bakfile_entries:
             Path(entry.bakfile_loc).unlink(missing_ok=True)
             db_handler.del_bakfile_entry(entry)
-    else:
-        copy2(bakfile_entry.bakfile_loc, destination)
 
 
 def __remove_bakfiles(bakfile_entries):
