@@ -32,6 +32,8 @@ Don't worry, they're easy to remember after a minute:
 
 All of **bak**'s commands will disambiguate between multiple copies of the same file. In other words, you can `bak my_thing.txt` as many times as you want, until you're finished working, if you'd prefer to keep multiples instead of using `bak up`. At the moment, all you've got to go by are timestamps when it asks you to pick a .bakfile, but this will improve.
 
+**NOTE:** `bak down` will fall back on `sudo cp` if necessary. Please don't run `sudo bak`. This may create parallel config and bakfiles in root's XDG directories.
+
 ## Additional commands and flags
 
 `bak down --keep my_file` - Restores from .bakfile, does not delete .bakfile  
