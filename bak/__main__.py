@@ -1,19 +1,13 @@
 import functools
+from os import environ
 from pathlib import Path
 
 import click
 from click_default_group import DefaultGroup
-from config import KeyNotFoundError
-
 
 from bak import commands
 from bak import BAK_VERSION as bak_version
-from bak.configuration import bak_cfg
-
-try:
-    bak_list_colors = bak_cfg['bak_list_colors']
-except KeyNotFoundError:
-    bak_list_colors = False
+from bak.configuration import bak_cfg as cfg
 
 def __print_help():
     with click.get_current_context() as ctx:
@@ -161,12 +155,15 @@ def bak_diff(filename, using):
 
 @bak.command("list",
              help="List all .bakfiles, or a particular file's")
-@click.option("--colors/--nocolors", "-c/-C", help="Colorize output", is_flag=True, default=bak_list_colors)
+@click.option("--colors/--nocolors", "-c/-C",
+              help="Colorize output",
+              is_flag=True,
+              default=cfg['bak_list_colors'] and not cfg['fast_mode'])
 @click.option("--relpaths", "--rel", "-r",
               help="Display relative paths instead of abspaths",
               required=False,
               is_flag=True,
-              default=commands.bak_list_relpaths)
+              default=commands.BAK_LIST_RELPATHS)
 @click.option("--compare", "--diff", "-d",
               help="Compare .bakfiles with current file, identify exact copies",
               required=False,
@@ -181,6 +178,14 @@ def bak_list(colors, relpaths, compare, filename):
         filename = Path(filename).expanduser().resolve()
     commands.show_bak_list(filename=filename or None, relative_paths=relpaths, colors=colors, compare=compare)
 
+CFG_HELP_TEXT = 'Get/set config values. Valid settings include:\n\n' + \
+                '\n\n\t\t'.join([''] + list(cfg.SETTABLE_VALUES.keys()))
+@bak.command("config",
+             short_help="get/set config options", help=CFG_HELP_TEXT)
+@click.argument("setting", required=True)
+@click.argument("value", required=False, nargs=-1)
+def bak_config(setting, value):
+    commands.bak_config_command(setting, value)
 
 if __name__ == "__main__":
     bak()

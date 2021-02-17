@@ -10,7 +10,7 @@ from typing import List, Optional
 from warnings import warn
 
 import click
-from config import Config
+from config import Config, KeyNotFoundError
 from rich import box
 from rich.color import Color
 from rich.console import Console
@@ -24,9 +24,9 @@ from bak.data import bak_db, bakfile
 bak_dir = cfg['bakfile_location'] or cfg.data_dir / 'bak' / 'bakfiles'
 bak_db_loc = cfg['bak_database_location'] or cfg.data_dir / 'bak' / 'bak.db'
 
-bak_list_relpaths = cfg['bak_list_relative_paths']
-bak_list_colors = cfg['bak_list_colors']
-
+BAK_LIST_RELPATHS = cfg['bak_list_relative_paths']
+BAK_LIST_COLORS = cfg['bak_list_colors']
+FASTMODE = cfg['fast_mode']
 if not bak_dir.exists():
     bak_dir.mkdir(parents=True)
 
@@ -72,7 +72,7 @@ def _do_select_bakfile(bakfiles: List[bakfile.BakFile],
                        diff=True):
     console = Console(file=stderr if err else stdout)
 
-    show_bak_list(bakfiles[0].orig_abspath, err=err, colors=bak_list_colors, compare=diff)
+    show_bak_list(bakfiles[0].orig_abspath, err=err, colors=(BAK_LIST_COLORS and not FASTMODE), compare=diff)
 
     def get_choice():
         return click.prompt(*select_prompt, err=err).lower()
@@ -132,7 +132,7 @@ def _identify_baks(entries):
 
 
 def show_bak_list(filename: Optional[Path] = None,
-                  relative_paths: bool = False,
+                  relative_paths: bool = BAK_LIST_RELPATHS,
                   err=False,
                   colors=False,
                   compare=False):
@@ -184,8 +184,8 @@ def show_bak_list(filename: Optional[Path] = None,
             caption.append('\n')
         caption.append('   (files may have been edited since restoration)', style='dim italic')
     else:
-        caption = '-- oldest .bak   ++ newest .bak   ** restored' + \
-                  ('  $ current version of file' if compare else '')+ \
+        caption = '-- oldest .bak   ++ newest .bak   ** restored' +\
+                 ('  $ current version of file' if compare else '') +\
                   '\n   (files may have been edited since restoration)'
 
     _title = f".bakfiles of {filename}" if \
@@ -478,10 +478,9 @@ def bak_getfile_cmd(bak_to_get: (str, bakfile.BakFile)):
 def bak_diff_cmd(filename: (bakfile.BakFile, Path), command='diff'):
     # TODO write tests for this (mildly tricky)
     console = Console()
-
     bak_to_diff = filename if isinstance(filename, bakfile.BakFile) else \
         _get_bakfile_entry(filename,
-                           diff=True,
+                           diff=not FASTMODE,
                            select_prompt=(
                                ("Enter a number to diff a .bakfile, or:\n(V)iew (C)ancel", "C")))
     if not command:
@@ -494,3 +493,19 @@ def bak_diff_cmd(filename: (bakfile.BakFile, Path), command='diff'):
     command = command.strip('"').strip("'").split(" ")
     call(command +
          [bak_to_diff.bakfile_loc, bak_to_diff.orig_abspath])
+
+def bak_config_command(setting: str, value: tuple=()):
+    if setting not in cfg.SETTABLE_VALUES:
+        click.echo("Invalid setting. Valid choices include:\n\t\t\t"
+                   + "\n\t\t\t".join(option for option in cfg.SETTABLE_VALUES))
+        return
+    if value == ():
+        try:
+            click.echo(cfg.get(setting, literal=True))
+        except KeyError:
+            click.echo(f"Unknown option {setting}")
+    else:
+        try:
+            cfg[setting] = ' '.join(value)
+        except KeyNotFoundError as err:
+            click.echo(err)
