@@ -18,6 +18,7 @@ class BakConfiguration(dict):
     }
 
     SETTABLE_VALUES = {
+        'diff-exec': 'bak_diff_exec',
         'relative-paths': 'bak_list_relative_paths',
         'colors': 'bak_list_colors',
         'fast-mode': 'fast_mode'
@@ -93,7 +94,7 @@ class BakConfiguration(dict):
                 if value is None:
                     value = 'null'
                 else:
-                    value = f"{value}"
+                    value = f"'{value}'"
 
             _config = None
             with open(self.config_file, 'r') as _file:

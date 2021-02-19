@@ -494,12 +494,12 @@ def bak_diff_cmd(filename: (bakfile.BakFile, Path), command='diff'):
     call(command +
          [bak_to_diff.bakfile_loc, bak_to_diff.orig_abspath])
 
-def bak_config_command(setting: str, value: tuple=()):
+def bak_config_command(get_op: bool, setting: str, value: tuple=()):
     if setting not in cfg.SETTABLE_VALUES:
         click.echo("Invalid setting. Valid choices include:\n\t\t\t"
                    + "\n\t\t\t".join(option for option in cfg.SETTABLE_VALUES))
         return
-    if value == ():
+    if any((get_op, value == ())):
         try:
             click.echo(cfg.get(setting, literal=True))
         except KeyError:

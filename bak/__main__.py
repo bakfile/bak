@@ -178,14 +178,16 @@ def bak_list(colors, relpaths, compare, filename):
         filename = Path(filename).expanduser().resolve()
     commands.show_bak_list(filename=filename or None, relative_paths=relpaths, colors=colors, compare=compare)
 
+TAB = '\t'
 CFG_HELP_TEXT = 'Get/set config values. Valid settings include:\n\n' + \
-                '\n\n\t\t'.join([''] + list(cfg.SETTABLE_VALUES.keys()))
+                f'{(TAB + cfg.newline).join(cfg.SETTABLE_VALUES)}'
 @bak.command("config",
              short_help="get/set config options", help=CFG_HELP_TEXT)
+@click.option("--get/--set", default=True)
 @click.argument("setting", required=True)
 @click.argument("value", required=False, nargs=-1)
-def bak_config(setting, value):
-    commands.bak_config_command(setting, value)
+def bak_config(get, setting, value):
+    commands.bak_config_command(get, setting, value)
 
 if __name__ == "__main__":
     bak()
