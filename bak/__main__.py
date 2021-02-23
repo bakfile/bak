@@ -1,5 +1,4 @@
 import functools
-from os import environ
 from pathlib import Path
 
 import click
@@ -8,6 +7,7 @@ from click_default_group import DefaultGroup
 from bak import commands
 from bak import BAK_VERSION as bak_version
 from bak.configuration import bak_cfg as cfg
+
 
 def __print_help():
     with click.get_current_context() as ctx:
@@ -51,6 +51,7 @@ def bak():
 def _create(filename, version):
     create_bak_cmd(filename, version)
 
+
 @bak.command("create", hidden=True)
 @normalize_path()
 @click.option("--version", required=False, is_flag=True)
@@ -59,6 +60,8 @@ def create(filename, version):
     create_bak_cmd(filename, version)
 
 # Ensures that 'bak --help' is printed if it doesn't get a filename
+
+
 def create_bak_cmd(filename, version):
     if version:
         click.echo(f"bak version {bak_version}")
@@ -176,11 +179,15 @@ def bak_diff(filename, using):
 def bak_list(colors, relpaths, compare, filename):
     if filename:
         filename = Path(filename).expanduser().resolve()
-    commands.show_bak_list(filename=filename or None, relative_paths=relpaths, colors=colors, compare=compare)
+    commands.show_bak_list(filename=filename or None,
+                           relative_paths=relpaths, colors=colors, compare=compare)
+
 
 TAB = '\t'
 CFG_HELP_TEXT = 'Get/set config values. Valid settings include:\n\n' + \
                 f'{(TAB + cfg.newline).join(cfg.SETTABLE_VALUES)}'
+
+
 @bak.command("config",
              short_help="get/set config options", help=CFG_HELP_TEXT)
 @click.option("--get/--set", default=True)
@@ -188,6 +195,7 @@ CFG_HELP_TEXT = 'Get/set config values. Valid settings include:\n\n' + \
 @click.argument("value", required=False, nargs=-1)
 def bak_config(get, setting, value):
     commands.bak_config_command(get, setting, value)
+
 
 if __name__ == "__main__":
     bak()

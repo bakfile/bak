@@ -7,7 +7,8 @@ from .bakfile import BakFile
 
 class BakDBHandler:
     db_loc: Path
-    COL_NAMES = ['original_file', 'original_abspath', 'bakfile', 'date_created', 'date_modified', 'restored']
+    COL_NAMES = ['original_file', 'original_abspath',
+                 'bakfile', 'date_created', 'date_modified', 'restored']
 
     def __init__(self, db_loc: Path):
         self.db_loc = db_loc
@@ -85,5 +86,6 @@ class BakDBHandler:
 
     def get_all_entries(self):
         with sqlite3.connect(self.db_loc) as db_conn:
-            cursor = db_conn.execute("SELECT * FROM bakfiles ORDER BY original_abspath, date_created")
+            cursor = db_conn.execute(
+                "SELECT * FROM bakfiles ORDER BY original_abspath, date_created")
             return [BakFile(*entry) for entry in cursor.fetchall()]

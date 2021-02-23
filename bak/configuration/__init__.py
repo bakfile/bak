@@ -6,8 +6,9 @@ from re import sub
 
 from config import Config, KeyNotFoundError
 
+
 class BakConfiguration(dict):
-# Establish default config values
+    # Establish default config values
     DEFAULT_VALUES = {
         'bakfile_location': 'null',
         'bak_database_location': 'null',
@@ -30,6 +31,7 @@ class BakConfiguration(dict):
     newline: str
 
     values: dict
+
     def __init__(self):
 
         self.values = {}
@@ -37,11 +39,13 @@ class BakConfiguration(dict):
 
         # Establish config file and database locations
         try:
-            self.data_dir = Path(os.environ["XDG_DATA_HOME"]).expanduser().resolve()
+            self.data_dir = Path(
+                os.environ["XDG_DATA_HOME"]).expanduser().resolve()
         except KeyError:
             self.data_dir = Path("~/.local/share").expanduser().resolve()
         try:
-            self.config_dir = Path(os.environ["XDG_CONFIG_HOME"]).expanduser().resolve()
+            self.config_dir = Path(
+                os.environ["XDG_CONFIG_HOME"]).expanduser().resolve()
         except KeyError:
             self.config_dir = Path("~/.config").expanduser().resolve()
 
@@ -52,7 +56,8 @@ class BakConfiguration(dict):
         for cfg_value in self.DEFAULT_VALUES:
             if cfg_value not in _cfg.as_dict():
                 with open(self.config_file, 'w') as _file:
-                    _file.write(f"{cfg_value}: {self.DEFAULT_VALUES[cfg_value]}\n")
+                    _file.write(
+                        f"{cfg_value}: {self.DEFAULT_VALUES[cfg_value]}\n")
                     _file.close()
                     reload = True
         if reload:
@@ -68,15 +73,15 @@ class BakConfiguration(dict):
         return translate_config_value(self.cfg[item])
 
     def get(self, item, literal=True):
-        """ 
+        """
         "Override" dict.get() in specific cases: use this to get the actual value of complex options,
         rather than whatever bak parses it into (like the actual command for `bak diff`, rather than
         an array of commands and arguments)
-        
+
         Called by `bak config <value>`, just for good measure
         """
         if literal:
-        # `and` would work, but why make the second check if this is a regular dict.get()?
+            # `and` would work, but why make the second check if this is a regular dict.get()?
             if item in self.SETTABLE_VALUES:
                 return self.cfg[self.SETTABLE_VALUES[item]]
         return super().get(item)
@@ -89,12 +94,11 @@ class BakConfiguration(dict):
             for setting in self.DEFAULT_VALUES:
                 err += f"\n\t\t\t{setting + self.newline}"
             raise KeyNotFoundError(err)
-        else:
-            if str(value).lower not in ('true', 'false'):
-                if value is None:
-                    value = 'null'
-                else:
-                    value = f"'{value}'"
+        if str(value).lower not in ('true', 'false'):
+            if value is None:
+                value = 'null'
+            else:
+                value = f"'{value}'"
 
             _config = None
             with open(self.config_file, 'r') as _file:
@@ -104,14 +108,18 @@ class BakConfiguration(dict):
                 _file.write(_config)
             self.cfg = Config(str(self.config_file))
 
+
 EQUIVALENT_VALUES = {'false': False,
                      'true': True,
                      'null': None}
+
+
 def translate_config_value(val):
     if val in EQUIVALENT_VALUES.values():
         return val
     if val not in EQUIVALENT_VALUES:
         return val
     return EQUIVALENT_VALUES[val]
+
 
 bak_cfg = BakConfiguration()
