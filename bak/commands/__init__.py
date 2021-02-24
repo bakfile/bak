@@ -1,3 +1,4 @@
+#region lots of imports
 import os
 import sqlite3
 from datetime import datetime
@@ -20,7 +21,10 @@ from rich.text import Text
 
 from bak.configuration import bak_cfg as cfg
 from bak.data import bak_db, bakfile
+#endregion
 
+
+#region constants etc.
 bak_dir = cfg['bakfile_location'] or cfg.data_dir / 'bak' / 'bakfiles'
 bak_db_loc = cfg['bak_database_location'] or cfg.data_dir / 'bak' / 'bak.db'
 
@@ -31,9 +35,14 @@ if not bak_dir.exists():
     bak_dir.mkdir(parents=True)
 
 db_handler = bak_db.BakDBHandler(bak_db_loc)
+#endregion
 
 
-def _assemble_bakfile(filename: Path):
+#region helpers
+############
+############
+############
+def __assemble_bakfile(filename: Path):
     time_now = datetime.now()
     bakfile_name = "".join(
         ["-".join(i for i in filename.parent.parts[1:])
@@ -52,7 +61,7 @@ def _assemble_bakfile(filename: Path):
 default_select_prompt = ("Enter a number, or: (V)iew (D)iff (C)ancel", 'C')
 
 
-def _get_bakfile_entry(filename: Path,
+def __get_bakfile_entry(filename: Path,
                        select_prompt=default_select_prompt,
                        err=True,
                        diff=False):
@@ -62,11 +71,11 @@ def _get_bakfile_entry(filename: Path,
     # If there's only one bakfile corresponding to filename, return that.
     # If there's more than one, disambiguate.
     return entries[0] if len(entries) == 1 else \
-        _do_select_bakfile(entries, select_prompt, err, diff)
+        __do_select_bakfile(entries, select_prompt, err, diff)
 
 # TODO: this is a quick kludge to integrate 'bak list'
 # A proper rewrite is in order
-def _do_select_bakfile(bakfiles: List[bakfile.BakFile],
+def __do_select_bakfile(bakfiles: List[bakfile.BakFile],
                        select_prompt=default_select_prompt,
                        err=True,
                        diff=True):
@@ -114,8 +123,20 @@ def _do_select_bakfile(bakfiles: List[bakfile.BakFile],
                 return False
             get_choice()
 
+def __remove_bakfiles(bakfile_entries):
+    for entry in bakfile_entries:
+        Path(entry.bakfile_loc).unlink()
+        db_handler.del_bakfile_entry(entry)
 
-def _identify_baks(entries):
+def __keep_bakfiles(bakfile_entry, bakfile_entries, new_destination):
+    if not new_destination:
+        for entry in bakfile_entries:
+            if all((entry.restored,
+                    entry.bakfile_loc != bakfile_entry.bakfile_loc)):
+                db_handler.set_restored_flag(entry, False)
+        db_handler.set_restored_flag(bakfile_entry, True)
+
+def __identify_baks(entries):
     # entries = db_handler.get_bakfile_entries(filename)
     oldest_version: bakfile.BakFile
     oldest_date = datetime.now()
@@ -132,11 +153,11 @@ def _identify_baks(entries):
     return (oldest_version, newest_version)
 
 
-def distinguish_baks(bakfiles):
+def __distinguish_baks(bakfiles):
     filenames = set(_bakfile.orig_abspath for _bakfile in bakfiles)
     _identified_baks = dict()
     for _filename in filenames:
-        _identified_baks[_filename] = _identify_baks(
+        _identified_baks[_filename] = __identify_baks(
             [_bakfile for _bakfile in bakfiles if _bakfile.orig_abspath == _filename])
     return _identified_baks
 
@@ -147,7 +168,7 @@ blue_style = Style(color="blue")
 none_style = Style()
 
 
-def _generate_caption(colors, compare):
+def __generate_caption(colors, compare):
     if colors:
         caption = Text()
         caption.append('-- ', style="red")
@@ -170,7 +191,7 @@ def _generate_caption(colors, compare):
     return caption
 
 
-def _prep_list_row(_bakfile,
+def __prep_list_row(_bakfile,
                    compare,
                    colors,
                    current_style,
@@ -228,6 +249,10 @@ def _prep_list_row(_bakfile,
     o_modified.stylize(current_style)
 
     return (index, o_path, o_created, o_modified)
+########################
+########################
+########################
+#endregion
 
 
 def show_bak_list(filename: Optional[Path] = None,
@@ -264,7 +289,7 @@ def show_bak_list(filename: Optional[Path] = None,
                          filename else ".bakfiles"),
                   show_lines=True,
                   box=box.HEAVY_EDGE,
-                  caption=_generate_caption(colors, compare))
+                  caption=__generate_caption(colors, compare))
     table.add_column("", justify='right', style=None)
     table.add_column("Original File")
     table.add_column("Date Created")
@@ -278,14 +303,14 @@ def show_bak_list(filename: Optional[Path] = None,
 
     # Begin individual row prep and add
     for _bakfile in bakfiles:
-        _id_baks = distinguish_baks(bakfiles)
+        _id_baks = __distinguish_baks(bakfiles)
         # Alternate styles on every other filename
         if current_filename != _bakfile.orig_abspath:
             current_filename = _bakfile.orig_abspath
             bold = not bold
             current_style = _rotate_style(bold)
 
-        table.add_row(*_prep_list_row(_bakfile,  # the current row's bakfile
+        table.add_row(*__prep_list_row(_bakfile,  # the current row's bakfile
                                       compare,  # options
                                       colors,
                                       current_style,
@@ -314,11 +339,11 @@ def create_bakfile(filename: Path):
     current_entries = db_handler.get_bakfile_entries(
         filename.expanduser().resolve())
     if current_entries:
-        if compare_files(_identify_baks(current_entries)[1].bakfile_loc, filename.expanduser().resolve()):
+        if compare_files(__identify_baks(current_entries)[1].bakfile_loc, filename.expanduser().resolve()):
             if not click.confirm("No changes to file since last bak. Would you like to create a duplicate .bakfile?"):
                 click.echo("Cancelled.")
                 return
-    new_bakfile = _assemble_bakfile(filename)
+    new_bakfile = __assemble_bakfile(filename)
     copy2(new_bakfile.orig_abspath, new_bakfile.bakfile_loc)
     db_handler.create_bakfile_entry(new_bakfile)
 
@@ -344,7 +369,7 @@ def bak_up_cmd(filename: Path):
 
     # Disambiguate
     old_bakfile = old_bakfile[0] if len(old_bakfile) == 1 else \
-        _do_select_bakfile(old_bakfile,
+        __do_select_bakfile(old_bakfile,
                            select_prompt=(
                                ("Enter a number to overwrite a .bakfile, or:\n(V)iew (C)ancel", "C")))
 
@@ -380,23 +405,24 @@ def bak_down_cmd(filename: Path,
         console.print(f"No bakfiles found for {filename}")
         return
 
-    bakfile_entry = _do_select_bakfile(bakfile_entries) if len(
+    bakfile_entry = __do_select_bakfile(bakfile_entries) if len(
         bakfile_entries) > 1 else bakfile_entries[0]
 
     if not bakfile_entry:
         console.print(f"No bakfiles found for {filename}" if bakfile_entry is None else "")
         return
-    if not destination:
-        destination = Path(bakfile_entry.orig_abspath)
-    else:
+    if destination:
         new_destination = destination.expanduser() != bakfile_entry.orig_abspath
+    else:
+        destination = Path(bakfile_entry.orig_abspath)
 
     if quiet:
         confirm = 'y'
     else:
-        if all((new_destination, destination.exists(), not click.confirm(f"Overwrite {destination}?", default=False))):
-            click.echo("Cancelled.")
-            return
+        if all((new_destination, destination.exists())):
+            if not click.confirm(f"Overwrite {destination}?", default=False):
+                click.echo("Cancelled.")
+                return
 
         erase = 'keep' if keep_bakfile else 'erase'
         confirm_prompt = f"Confirm: Restore {filename}"
@@ -413,19 +439,6 @@ def bak_down_cmd(filename: Path,
     args = [bakfile_entries] if not keep_bakfile else [bakfile_entry, bakfile_entries, new_destination]
     helper = __keep_bakfiles if keep_bakfile else __remove_bakfiles
     helper(*args)
-
-def __keep_bakfiles(bakfile_entry, bakfile_entries, new_destination):
-    if not new_destination:
-        for entry in bakfile_entries:
-            if all((entry.restored,
-                    entry.bakfile_loc != bakfile_entry.bakfile_loc)):
-                db_handler.set_restored_flag(entry, False)
-        db_handler.set_restored_flag(bakfile_entry, True)
-
-def __remove_bakfiles(bakfile_entries):
-    for entry in bakfile_entries:
-        Path(entry.bakfile_loc).unlink()
-        db_handler.del_bakfile_entry(entry)
 
 
 def bak_off_cmd(filename: Optional[Path],
@@ -464,7 +477,7 @@ def bak_print_cmd(bak_to_print: (str, bakfile.BakFile),
     console = Console()
 
     if not isinstance(bak_to_print, bakfile.BakFile):
-        _bak_to_print = _get_bakfile_entry(bak_to_print,
+        _bak_to_print = __get_bakfile_entry(bak_to_print,
                                            select_prompt=(
                                                "Enter a number to select a .bakfile, or:\n(D)iff (C)ancel",
                                                "C"))
@@ -474,7 +487,7 @@ def bak_print_cmd(bak_to_print: (str, bakfile.BakFile),
         else:
             bak_to_print = _bak_to_print
         if not isinstance(bak_to_print, bakfile.BakFile):
-            return  # _get_bakfile_entry() handles failures, so just exit here
+            return  # __get_bakfile_entry() handles failures, so just exit here
     pager = using if using else \
         (cfg['bak_open_exec'] or os.environ['PAGER']) or 'less'
     pager = pager.strip('"').strip("'").split(" ")
@@ -486,10 +499,10 @@ def bak_getfile_cmd(bak_to_get: (str, bakfile.BakFile)):
 
     if not isinstance(bak_to_get, bakfile.BakFile):
         filename = bak_to_get
-        bak_to_get = _get_bakfile_entry(bak_to_get, err=True)
+        bak_to_get = __get_bakfile_entry(bak_to_get, err=True)
         if bak_to_get is None:
             console.print(f"No bakfiles found for {Path(filename).resolve()}")
-            return  # _get_bakfile_entry() handles failures, so just exit
+            return  # __get_bakfile_entry() handles failures, so just exit
     print(bak_to_get.bakfile_loc)
 
 
@@ -497,7 +510,7 @@ def bak_diff_cmd(filename: (bakfile.BakFile, Path), command='diff'):
     # TODO write tests for this (mildly tricky)
     console = Console()
     bak_to_diff = filename if isinstance(filename, bakfile.BakFile) else \
-        _get_bakfile_entry(filename,
+        __get_bakfile_entry(filename,
                            diff=not FASTMODE,
                            select_prompt=(
                                ("Enter a number to diff a .bakfile, or:\n(V)iew (C)ancel", "C")))
@@ -514,6 +527,9 @@ def bak_diff_cmd(filename: (bakfile.BakFile, Path), command='diff'):
 
 
 def bak_config_command(get_op: bool, setting: str, value: tuple = ()):
+    # TODO make a proper Click help formatter for this and certain other functions
+    # (Click does weird things with tabs and newlines, and this nonsense is
+    # required just to obtain the unsatisfactory result we've got.)
     if setting not in cfg.SETTABLE_VALUES:
         click.echo("Invalid setting. Valid choices include:\n\t\t\t"
                    + "\n\t\t\t".join(option for option in cfg.SETTABLE_VALUES))
