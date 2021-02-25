@@ -225,6 +225,10 @@ def bak_up_cmd(filename: Path):
     db_handler.update_bakfile_entry(old_bakfile)
     return True
 
+def _sudo_bak_down_helper(src, dest):
+    # TODO spin this off into a separate exec for sanity
+    click.echo(f"The destination {dest} is privileged. Falling back on 'sudo cp'")
+    call(f"sudo cp {src} {dest}".split(" "))
 
 def bak_down_cmd(filename: Path,
                  destination: Optional[Path],
@@ -270,7 +274,11 @@ def bak_down_cmd(filename: Path,
     if not confirm:
         console.print("Cancelled.")
         return
-    copy2(bakfile_entry.bakfile_loc, destination)
+    
+    try:
+        copy2(bakfile_entry.bakfile_loc, destination)
+    except PermissionError:
+        _sudo_bak_down_helper(bakfile_entry.bakfile_loc, destination)
     if not keep_bakfile:
         for entry in bakfile_entries:
             Path(entry.bakfile_loc).unlink(missing_ok=True)
