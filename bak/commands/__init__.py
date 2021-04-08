@@ -205,7 +205,7 @@ def __prep_list_row(_bakfile,
                     _identified_baks,
                     i):
     # Apply identifying markers to indices
-    if compare:
+    if Path(current_filename).exists() and compare:
         current_version_marker = \
             Text("$ ") if compare_files(
                 _bakfile.bakfile_loc, current_filename) else None
