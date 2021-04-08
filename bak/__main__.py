@@ -6,6 +6,7 @@ from click_default_group import DefaultGroup
 
 from bak import commands
 from bak import BAK_VERSION as bak_version
+from bak.configuration import bak_cfg as cfg
 
 
 def __print_help():
@@ -50,6 +51,7 @@ def bak():
 def _create(filename, version):
     create_bak_cmd(filename, version)
 
+
 @bak.command("create", hidden=True)
 @normalize_path()
 @click.option("--version", required=False, is_flag=True)
@@ -57,11 +59,13 @@ def _create(filename, version):
 def create(filename, version):
     create_bak_cmd(filename, version)
 
-# Ensures that 'bak --help' is printed if it doesn't get a filename
+
+
 def create_bak_cmd(filename, version):
     if version:
         click.echo(f"bak version {bak_version}")
     elif not filename:
+    # Ensures that 'bak --help' is printed if it doesn't get a filename
         __print_help()
     else:
         filename = Path(filename).expanduser().resolve()
@@ -126,17 +130,17 @@ def bak_print(filename, using):
     commands.bak_print_cmd(filename, using)
 
 
-@bak.command("get-bak",
+@bak.command("where",
              help="Outputs the real path of a .bakfile. "
              "Useful for piping, and not much else.",
              short_help="Output the real path of a .bakfile")
-@click.argument("to_where_you_once_belonged",
+@click.argument("filename",
                 required=True,
-                type=click.Path(exists=True))
+                type=click.Path())
 @normalize_path()
-def bak_get(to_where_you_once_belonged):
+def bak_get(filename):
     to_where_you_once_belonged = Path(
-        to_where_you_once_belonged).expanduser().resolve()
+        filename).expanduser().resolve()
     commands.bak_getfile_cmd(to_where_you_once_belonged)
 
 
@@ -154,19 +158,46 @@ def bak_diff(filename, using):
 
 @bak.command("list",
              help="List all .bakfiles, or a particular file's")
-@click.option("--relpaths",
+@click.option("--colors/--nocolors", "-c/-C",
+              help="Colorize output",
+              is_flag=True,
+              default=cfg['bak_list_colors'] and not cfg['fast_mode'])
+@click.option("--relpaths", "--rel", "-r",
               help="Display relative paths instead of abspaths",
               required=False,
               is_flag=True,
-              default=commands.bak_list_relpaths)
+              default=commands.BAK_LIST_RELPATHS)
+@click.option("--compare", "--diff", "-d",
+              help="Compare .bakfiles with current file, identify exact copies",
+              required=False,
+              is_flag=True,
+              default=False)
 @click.argument("filename",
                 required=False,
                 type=click.Path(exists=True))
 @normalize_path()
-def bak_list(relpaths, filename):
+def bak_list(colors, relpaths, compare, filename):
     if filename:
         filename = Path(filename).expanduser().resolve()
-    commands.show_bak_list(filename=filename or None, relative_paths=relpaths)
+    commands.show_bak_list(filename=filename or None,
+                           relative_paths=relpaths, colors=colors, compare=compare)
+
+
+TAB = '\t'
+CFG_HELP_TEXT = '\b\nGet/set config values. Valid settings include:\n\n\t' + \
+               f'\b\n{(TAB + cfg.newline).join(cfg.SETTABLE_VALUES)}' + \
+                '\b\n\nNOTE: diff-exec\'s value should be enclosed in quotes, and' \
+                '\nformatted like:\b\n\n\t\'diff %old %new\' \b\n\n(%old and %new will be substituted ' \
+                'with the bakfile and the original file, respectively)'
+
+
+@bak.command("config",
+             short_help="get/set config options", help=CFG_HELP_TEXT)
+@click.option("--get/--set", default=True)
+@click.argument("setting", required=True)
+@click.argument("value", required=False, nargs=-1, type=str)
+def bak_config(get, setting, value):
+    commands.bak_config_command(get, setting, value)
 
 
 if __name__ == "__main__":
