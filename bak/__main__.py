@@ -130,17 +130,17 @@ def bak_print(filename, using):
     commands.bak_print_cmd(filename, using)
 
 
-@bak.command("get-bak",
+@bak.command("where",
              help="Outputs the real path of a .bakfile. "
              "Useful for piping, and not much else.",
              short_help="Output the real path of a .bakfile")
-@click.argument("to_where_you_once_belonged",
+@click.argument("filename",
                 required=True,
-                type=click.Path(exists=True))
+                type=click.Path())
 @normalize_path()
-def bak_get(to_where_you_once_belonged):
+def bak_get(filename):
     to_where_you_once_belonged = Path(
-        to_where_you_once_belonged).expanduser().resolve()
+        filename).expanduser().resolve()
     commands.bak_getfile_cmd(to_where_you_once_belonged)
 
 
