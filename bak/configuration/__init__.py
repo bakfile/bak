@@ -3,6 +3,7 @@ import os
 
 from pathlib import Path
 from re import sub
+from shutil import copy2
 
 from config import Config, KeyNotFoundError
 
@@ -50,13 +51,15 @@ class BakConfiguration(dict):
             self.config_dir = Path("~/.config").expanduser().resolve()
 
         self.config_file = self.config_dir / 'bak.cfg'
+        if not self.config_file.exists():
+            copy2(self.config_dir / 'bak.cfg.default', self.config_file)
         _cfg = Config(str(self.config_file))
 
         reload = False
         for cfg_value in self.DEFAULT_VALUES:
             if cfg_value not in _cfg.as_dict():
-                with open(self.config_file, 'w') as _file:
-                    _file.write(
+                with open(self.config_file, 'a') as _file:
+                    _file.writelines(
                         f"{cfg_value}: {self.DEFAULT_VALUES[cfg_value]}\n")
                     _file.close()
                     reload = True
