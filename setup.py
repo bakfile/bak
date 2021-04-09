@@ -8,7 +8,7 @@ require = ['click==7.1.2',
            'rich==9.1.0']
 
 setup(name='bak',
-      version='0.2.0a1',
+      version='0.2.1a1',
       description='the .bak manager',
       author='ChanceNCounter',
       author_email='ChanceNCounter@icloud.com',
@@ -28,6 +28,11 @@ except KeyError:
     config_dir = os.path.expanduser("~/.config")
 
 config_file = os.path.join(config_dir, 'bak.cfg')
+default_config = os.path.join(config_dir, 'bak.cfg.default')
 
 if not os.path.exists(config_file):
     copy2('bak/default.cfg', config_file)
+
+if not os.path.exists(default_config):
+    copy2('bak/default.cfg', default_config) 
+
