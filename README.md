@@ -47,11 +47,11 @@ All of **bak**'s commands will disambiguate between multiple copies of the same 
         bak open --using cat my_file.json
         bak open --in nvim my_file.json
 
-`bak get-bak my_file` Get the abspath of a .bakfile, in case, for some reason, you want to pipe it somewhere
+`bak where my_file` Get the abspath of a .bakfile, in case, for some reason, you want to pipe it somewhere
 
 > example (for illustrative purposes; use 'bak diff' instead):
 
-    diff `bak get-bak my_file.json` my_file.json
+    diff `bak where my_file.json` my_file.json
 
 ## Installation and Requirements
 
