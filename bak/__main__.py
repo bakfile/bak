@@ -60,7 +60,6 @@ def create(filename, version):
     create_bak_cmd(filename, version)
 
 
-
 def create_bak_cmd(filename, version):
     if version:
         click.echo(f"bak version {bak_version}")
@@ -75,12 +74,13 @@ def create_bak_cmd(filename, version):
 @bak.command("up", help="Replace a .bakfile with a fresh copy of the parent file")
 @normalize_path()
 @click.argument("filename", required=True, type=click.Path(exists=True))
-def bak_up(filename):
+@click.argument("bakfile_number", metavar="[#]", required=False, type=int)
+def bak_up(filename, bakfile_number):
     if not filename:
         click.echo("A filename or operation is required.\n"
                    "\tbak --help")
     filename = Path(filename).expanduser().resolve()
-    if not commands.bak_up_cmd(filename):
+    if not commands.bak_up_cmd(filename, bakfile_number):
         # TODO descriptive failures
         click.echo("An error occurred.")
 
@@ -96,14 +96,15 @@ def bak_up(filename):
               help="No confirmation prompt")
 @click.option('-d', '--destination', default=None, type=str)
 @click.argument("filename", required=True)
-def bak_down(filename: str, keep: bool, quietly: bool, destination: str):
+@click.argument("bakfile_number", metavar="[#]", required=False, type=int)
+def bak_down(filename: str, keep: bool, quietly: bool, destination: str, bakfile_number: int=0):
     if not filename:
         click.echo("A filename or operation is required.\n"
                    "\tbak --help")
     filename = Path(filename).expanduser().resolve()
     if destination:
         destination = Path(destination).expanduser().resolve()
-    commands.bak_down_cmd(filename, destination, keep, quietly)
+    commands.bak_down_cmd(filename, destination, keep, quietly, bakfile_number)
 
 
 @bak.command("off", help="Use when finished to delete .bakfiles")
@@ -125,9 +126,10 @@ def bak_off(filename, quietly):
               required=False, hidden=True)
 @normalize_path()
 @click.argument("filename", required=True, type=click.Path(exists=True))
-def bak_print(filename, using):
+@click.argument("bakfile_number", metavar="[#]", required=False, type=int)
+def bak_print(filename, using, bakfile_number):
     filename = Path(filename).expanduser().resolve()
-    commands.bak_print_cmd(filename, using)
+    commands.bak_print_cmd(filename, using, bakfile_number)
 
 
 @bak.command("where",
@@ -137,11 +139,12 @@ def bak_print(filename, using):
 @click.argument("filename",
                 required=True,
                 type=click.Path())
+@click.argument("bakfile_number", metavar="[#]", required=False, type=int)
 @normalize_path()
-def bak_get(filename):
+def bak_get(filename, bakfile_number=0):
     to_where_you_once_belonged = Path(
         filename).expanduser().resolve()
-    commands.bak_getfile_cmd(to_where_you_once_belonged)
+    commands.bak_getfile_cmd(to_where_you_once_belonged, bakfile_number)
 
 
 @bak.command("diff",
@@ -151,9 +154,10 @@ def bak_get(filename):
               required=False)
 @normalize_path()
 @click.argument("filename", required=True, type=click.Path(exists=True))
-def bak_diff(filename, using):
+@click.argument("bakfile_number", metavar="[#]", required=False, type=int)
+def bak_diff(filename, using, bakfile_number=0):
     filename = Path(filename).expanduser().resolve()
-    commands.bak_diff_cmd(filename, command=using)
+    commands.bak_diff_cmd(filename, command=using, bakfile_number=bakfile_number or 0)
 
 
 @bak.command("list",
