@@ -2,11 +2,13 @@
 
 **bak** is a command-line utility for creating and restoring backup copies of single files - `.bak` files - without clutter.
 
-- [Description and Usage](#description-and-usage)
-- [Additional Commands](#additional-commands-and-flags)
-- [Installation and Requirements](#installation-and-requirements)
-- [Current State](#current-state)
-- [Contributing](#contributing)
+- [bak](#bak)
+  - [Description and Usage](#description-and-usage)
+  - [Additional commands and flags](#additional-commands-and-flags)
+  - [Installation and Requirements](#installation-and-requirements)
+    - [Installation](#installation)
+  - [Current state](#current-state)
+  - [Contributing](#contributing)
 
 ## Description and Usage
 
@@ -30,7 +32,7 @@ Don't worry, they're easy to remember after a minute:
 `bak down`: I've screwed up, undo the damage.  
 `bak off`: I'm done working. Go away, **bak**, and take your .bakfile with you.
 
-All of **bak**'s commands will disambiguate between multiple copies of the same file. In other words, you can `bak my_thing.txt` as many times as you want, until you're finished working, if you'd prefer to keep multiples instead of using `bak up`. At the moment, all you've got to go by are timestamps when it asks you to pick a .bakfile, but this will improve.
+All of **bak**'s commands will disambiguate between multiple copies of the same file. In other words, you can `bak my_thing.txt` as many times as you want, until you're finished working, if you'd prefer to keep multiples instead of using `bak up`.
 
 **NOTE:** `bak down` will fall back on `sudo cp` if necessary. Please don't run `sudo bak`. This may create parallel config and bakfiles in root's XDG directories.
 
@@ -72,8 +74,8 @@ In `bak`'s case, I usually test system-level usage with a simple and naive `setu
 
 ## Current state
 
-(updated Jan. 20, 2020)  
-This is a very pre-alpha version, as in, this is a spaghetti proof-of-concept. Perhaps ~~5-6~~ ~~12-15~~ 20 hours have been spent on development so far. As such, it's only "working" in the strictest sense.
+(updated Oct. 06, 2021)  
+This remains a very pre-alpha version, as in, this is a spaghetti proof-of-concept. Perhaps ~~5-6~~ ~~12-15~~ ~~20~~ 40 hours have been spent on development so far. As such, it's only "working" in ~~the strictest~~ an amateurish sense.
 
 At the moment, **bak** stores its database and your bakfiles in `$XDG_DATA_HOME/bak`. If `$XDG_DATA_HOME` is not set, its specified default is used, and your stuff ends up in `~/.local/share/bak`.
 
