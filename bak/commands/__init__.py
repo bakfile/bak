@@ -64,10 +64,18 @@ default_select_prompt = ("Enter a number, or: (V)iew (D)iff (C)ancel", 'C')
 def __get_bakfile_entry(filename: Path,
                         select_prompt=default_select_prompt,
                         err=True,
-                        diff=False):
+                        diff=False,
+                        bakfile_number=0,
+                        console: Console=None):
     entries = db_handler.get_bakfile_entries(filename)
     if not entries:
         return None
+    if bakfile_number > 0:
+        try:
+            return entries[bakfile_number - 1]
+        except IndexError:
+            console.print(f"No such bakfile: {filename} #{bakfile_number}")
+            return None
     # If there's only one bakfile corresponding to filename, return that.
     # If there's more than one, disambiguate.
     return entries[0] if len(entries) == 1 else \
@@ -352,7 +360,7 @@ def create_bakfile(filename: Path):
     db_handler.create_bakfile_entry(new_bakfile)
 
 
-def bak_up_cmd(filename: Path):
+def bak_up_cmd(filename: Path, bakfile_number: int=0):
     """ Overwrite an existing .bakfile with the file's current contents
 
     Args:
@@ -372,8 +380,14 @@ def bak_up_cmd(filename: Path):
         return create_bakfile(filename)
 
     # Disambiguate
-    old_bakfile = old_bakfile[0] if len(old_bakfile) == 1 else \
-        __do_select_bakfile(old_bakfile,
+    if len(old_bakfile) == 1:
+        old_bakfile = old_bakfile[0]
+        if bakfile_number > 1:
+            console.print(f"Only found 1 bakfile for {filename}")
+    elif bakfile_number > 0:
+        old_bakfile = __get_bakfile_entry(filename, bakfile_number=bakfile_number, console=console)
+    else:
+        old_bakfile = __do_select_bakfile(old_bakfile,
                             select_prompt=(
                                 ("Enter a number to overwrite a .bakfile, or:\n(V)iew (C)ancel", "C")))
 
@@ -383,8 +397,8 @@ def bak_up_cmd(filename: Path):
     elif not isinstance(old_bakfile, bakfile.BakFile):
         return False
 
-    old_bakfile.date_modified = datetime.now()
     copy2(old_bakfile.original_file, old_bakfile.bakfile_loc)
+    old_bakfile.date_modified = datetime.now()
     db_handler.update_bakfile_entry(old_bakfile)
     return True
 
@@ -396,7 +410,8 @@ def _sudo_bak_down_helper(src, dest):
 def bak_down_cmd(filename: Path,
                  destination: Optional[Path],
                  keep_bakfile: bool = False,
-                 quiet: bool = False):
+                 quiet: bool = False,
+                 bakfile_number: int = 0):
     """ Restore `filename` from .bakfile. Prompts if ambiguous (such as
         when there are multiple .bakfiles of `filename`)
 
@@ -406,15 +421,24 @@ def bak_down_cmd(filename: Path,
         quiet (bool): If True, does not ask user to confirm
         destination (None|Path): destination path to restore to
     """
+    bakfile_entry = None
+    bakfile_entries = []
     console = Console()
     new_destination = False
-    bakfile_entries = db_handler.get_bakfile_entries(filename)
-    if not bakfile_entries:
-        console.print(f"No bakfiles found for {filename}")
-        return
-
-    bakfile_entry = __do_select_bakfile(bakfile_entries) if len(
-        bakfile_entries) > 1 else bakfile_entries[0]
+    if bakfile_number:
+        bakfile_entry = __get_bakfile_entry(filename,
+                                              bakfile_number=bakfile_number,
+                                              console=console)
+        if not bakfile_entry:
+            console.print("Cancelled.")
+            return
+    else:
+        bakfile_entries = db_handler.get_bakfile_entries(filename)
+        if not bakfile_entries:
+            console.print(f"No bakfiles found for {filename}")
+            return
+        bakfile_entry = __do_select_bakfile(bakfile_entries) if len(
+            bakfile_entries) > 1 else bakfile_entries[0]
 
     if not bakfile_entry:
         console.print(f"No bakfiles found for {filename}" if bakfile_entry is None else "")
@@ -446,7 +470,7 @@ def bak_down_cmd(filename: Path,
         copy2(bakfile_entry.bakfile_loc, destination)
     except PermissionError:
         _sudo_bak_down_helper(bakfile_entry.bakfile_loc, destination)
-    if not keep_bakfile:
+    if not any((keep_bakfile, bakfile_number)):
         for entry in bakfile_entries:
             Path(entry.bakfile_loc).unlink(missing_ok=True)
             db_handler.del_bakfile_entry(entry)
@@ -466,15 +490,7 @@ def bak_down_cmd(filename: Path,
 
 def bak_off_cmd(filename: Optional[Path],
                 quietly=False):
-    """ Used when finished. Deletes `filename.bak`. Prompts if ambiguous:
-            3 .bakfiles detected:
-                1. filename.bak   |   <metadata>
-                2. filename.bak.1 |   <metadata>
-                3. filename.bak.2 |   <metadata>
-            Delete:
-                (A)ll, (1,2,3), (N)one, (C)ancel
-        NOTE: that output isn't implemented yet, but it does offer decent
-              options when disambiguation is required
+    """ Used when finished. Deletes all instances of `filename.bak`
     Args:
         filename ([type], optional): [description]. Defaults to None.
     """
@@ -494,7 +510,8 @@ def bak_off_cmd(filename: Optional[Path],
 
 
 def bak_print_cmd(bak_to_print: (str, bakfile.BakFile),
-                  using: (str, None) = None):
+                  using: (str, None) = None,
+                  bakfile_number: int = 0):
     # if this thing is given a string, it needs to go find
     # a corresponding bakfile
     console = Console()
@@ -503,8 +520,10 @@ def bak_print_cmd(bak_to_print: (str, bakfile.BakFile),
         _bak_to_print = __get_bakfile_entry(bak_to_print,
                                             select_prompt=(
                                                 "Enter a number to select a .bakfile, or:\n(D)iff (C)ancel",
-                                                "C"))
-        if _bak_to_print is None:
+                                                "C"),
+                                            bakfile_number=bakfile_number,
+                                            console=console)
+        if all((_bak_to_print is None, not bakfile_number)):
             console.print(
                 f"No bakfiles found for {Path(bak_to_print).resolve()}")
         else:
@@ -517,19 +536,25 @@ def bak_print_cmd(bak_to_print: (str, bakfile.BakFile),
     call(pager + [bak_to_print.bakfile_loc])
 
 
-def bak_getfile_cmd(bak_to_get: (str, bakfile.BakFile)):
+def bak_getfile_cmd(bak_to_get: (str, bakfile.BakFile), bakfile_number:int=0):
     console = Console(file=stderr)
 
     if not isinstance(bak_to_get, bakfile.BakFile):
         filename = bak_to_get
-        bak_to_get = __get_bakfile_entry(bak_to_get, err=True)
-        if bak_to_get is None:
-            console.print(f"No bakfiles found for {Path(filename).resolve()}")
+        bak_to_get = __get_bakfile_entry(bak_to_get,
+                                         err=True,
+                                         bakfile_number=bakfile_number,
+                                         console=console)
+        if not bak_to_get:
+            if bakfile_number:
+                console.print("Invalid bakfile #")
+            elif bak_to_get is None:
+                console.print(f"No bakfiles found for {Path(filename).resolve()}")
             return  # __get_bakfile_entry() handles failures, so just exit
-    print(bak_to_get.bakfile_loc)
+    console.print(bak_to_get.bakfile_loc)
 
 
-def bak_diff_cmd(filename: (bakfile.BakFile, Path), command=None):
+def bak_diff_cmd(filename: (bakfile.BakFile, Path), command=None, bakfile_number: int=0):
     '''
     Expects a config value for its exec along the lines of:
         diff %old %new
@@ -543,22 +568,24 @@ def bak_diff_cmd(filename: (bakfile.BakFile, Path), command=None):
         __get_bakfile_entry(filename,
                             diff=not FASTMODE,
                             select_prompt=(
-                                ("Enter a number to diff a .bakfile, or:\n(V)iew (C)ancel", "C")))
+                                ("Enter a number to diff a .bakfile, or:\n(V)iew (C)ancel", "C")),
+                            bakfile_number=bakfile_number,
+                            console=console)
     if not command:
         command = cfg['bak_diff_exec']
         if not command or any((i not in command.lower() for i in ['%old', '%new'])):
             command = 'diff %old %new'
     if bak_to_diff is None:
-        console.print(f"No bakfiles found for {filename}")
+        if not bakfile_number:
+            console.print(f"No bakfiles found for {filename}")
         return
     if not bak_to_diff:
         return
-    command = command.lower().replace('%old', bak_to_diff.bakfile_loc).replace('%new', bak_to_diff.orig_abspath)
-    command = command.strip('"').strip("'").split(" ")
 
+    command = command.split(" ")
+    command[command.index('%old')] = bak_to_diff.bakfile_loc
+    command[command.index('%new')] = bak_to_diff.orig_abspath
     call(command)
-    # call(command +
-    #      [bak_to_diff.bakfile_loc, bak_to_diff.orig_abspath])
 
 
 def bak_config_command(get_op: bool, setting: str, value: tuple = ()):
