@@ -39,7 +39,10 @@ BASIC_HELP_TEXT = "bak FILENAME (creates a bakfile)\n\nalias: bak create\n\n" +\
     "See also: bak COMMAND --help"
 
 
-@click.group(cls=DefaultGroup, default='\0', default_if_no_args=True, help=BASIC_HELP_TEXT)
+@click.group(cls=DefaultGroup, default='\0', no_args_is_help=True, help=BASIC_HELP_TEXT,
+             invoke_without_command=True)
+# The --version option is duplicated here to make Click render it in bak --help
+@click.option("--version", required=False, is_flag=True, help="Print current version and exit.")
 def bak():
     pass
 
