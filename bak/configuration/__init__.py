@@ -4,7 +4,9 @@ import os
 from pathlib import Path
 from re import sub
 from shutil import copy2
+from sys import exit as _exit
 
+from click import echo
 from config import Config, KeyNotFoundError
 
 
@@ -52,11 +54,20 @@ class BakConfiguration(dict):
 
         self.config_file = self.config_dir / 'bak.cfg'
         if not self.config_file.exists():
-            copy2(self.config_dir / 'bak.cfg.default', self.config_file)
+            try:
+                copy2(Path('/etc/xdg/bak.cfg.default'), self.config_file)
+            except FileNotFoundError:
+                try:
+                    copy2(self.config_dir / 'bak.cfg.default', self.config_file)
+                except FileNotFoundError:
+                    echo("Error: current user can't find bak's default config file! "
+                        "Try copying \n\t~/.config/bak.cfg.default\nfrom your default user's ~"
+                        " into this user's, or installing bak another way.")
+                    _exit()
         _cfg = Config(str(self.config_file))
 
         reload = False
-        for cfg_value in self.DEFAULT_VALUES:
+        for cfg_value in self.DEFAULT_VALUES.keys():
             if cfg_value not in _cfg.as_dict():
                 with open(self.config_file, 'a') as _file:
                     _file.writelines(
