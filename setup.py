@@ -8,7 +8,7 @@ require = ['click==7.1.2',
            'rich==9.1.0']
 
 setup(name='bak',
-      version='0.2.2a4',
+      version='0.2.2a5',
       description='the .bak manager',
       author='ChanceNCounter',
       author_email='ChanceNCounter@icloud.com',

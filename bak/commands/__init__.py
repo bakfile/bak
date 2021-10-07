@@ -152,13 +152,9 @@ def __keep_bakfiles(bakfile_entry, bakfile_entries, new_destination, bakfile_num
     keep_all = not bakfile_numbers_to_keep
     if not keep_all:
         baks_to_remove = []
-        click.echo(f"Indeed, delete baks other than {bakfile_numbers_to_keep}")
         for i, entry in enumerate(bakfile_entries):
             if (i + 1) not in bakfile_numbers_to_keep:
                 baks_to_remove.append(bakfile_entries[i])
-        click.echo(bakfile_numbers_to_keep)
-        click.echo(bakfile_entries)
-        click.echo(baks_to_remove)
         __remove_bakfiles(baks_to_remove)
 
 
@@ -450,6 +446,7 @@ def bak_down_cmd(filename: Path,
         if not bakfile_entry:
             console.print("Cancelled.")
             return
+        index = bakfile_number-1
     else:
         try:
             bakfile_entry, index = __do_select_bakfile(bakfile_entries, return_index=True) if len(
@@ -508,7 +505,7 @@ def bak_down_cmd(filename: Path,
 
         multiples = bool(len(bakfile_entries))
         restore_from = f"{index + 1}" \
-            if multiples or index != 0 \
+            if (multiples or index != 0) \
             else (f"{bakfile_number}" if bakfile_number else '')
         confirm_prompt += f" from bakfile #{restore_from}" if restore_from else ''
             
