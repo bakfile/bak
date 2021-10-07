@@ -70,7 +70,7 @@ def __get_bakfile_entry(filename: Path,
     entries = db_handler.get_bakfile_entries(filename)
     if not entries:
         return None
-    if bakfile_number > 0:
+    if bakfile_number and bakfile_number > 0:
         try:
             return entries[bakfile_number - 1]
         except IndexError:
@@ -634,7 +634,7 @@ def bak_getfile_cmd(bak_to_get: (str, bakfile.BakFile), bakfile_number:int=0):
             elif bak_to_get is None:
                 console.print(f"No bakfiles found for {Path(filename).resolve()}")
             return  # __get_bakfile_entry() handles failures, so just exit
-    console.print(bak_to_get.bakfile_loc)
+    print(bak_to_get.bakfile_loc)
 
 
 def bak_diff_cmd(filename: (bakfile.BakFile, Path), command=None, bakfile_number: int=0):
