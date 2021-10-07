@@ -38,7 +38,6 @@ All of **bak**'s commands will disambiguate between multiple copies of the same 
 
 ## Additional commands and flags
 
-`bak down --keep my_file` - Restores from .bakfile, does not delete .bakfile  
 `bak diff my_file` Compare a .bakfile using `diff` (configurable)  
 `bak list`/`bak list my_file` - List all .bakfiles, or just `my_file`'s  
 `bak open my_file` View a .bakfile in $PAGER (configurable)  
@@ -48,6 +47,15 @@ All of **bak**'s commands will disambiguate between multiple copies of the same 
 
         bak open --using cat my_file.json
         bak open --in nvim my_file.json
+
+`bak del my_file [N]` Delete a specific .bakfile. If N is provided, deletes `my_file.bak` #N. Otherwise, prompts to disambiguate.  
+
+`bak down --keep [N|all] my_file` - Restores from .bakfile, keeping bakfile #N, or all bakfiles. May be invoked more than once.  
+> examples:  
+
+        bak down --keep all my_file.json // keep all bakfiles  
+        bak down --keep 1 my_file.json // keep bakfile #1  
+        bak down -k 1 -k 4 my_file.json // keep bakfiles #1 and #4  
 
 `bak where my_file` Get the abspath of a .bakfile, in case, for some reason, you want to pipe it somewhere
 
