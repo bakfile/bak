@@ -2,13 +2,15 @@ import os
 from shutil import copy2
 from setuptools import setup, find_packages
 
+from bak import BAK_VERSION
+
 require = ['click==7.1.2',
            'click-default-group==1.2.2',
            'config==0.5.0',
            'rich==9.1.0']
 
 setup(name='bak',
-      version='0.2.2a6',
+      version=BAK_VERSION,
       description='the .bak manager',
       author='ChanceNCounter',
       author_email='ChanceNCounter@icloud.com',

@@ -1,1 +1,1 @@
-BAK_VERSION = "0.2.2a6"
+BAK_VERSION = "0.2.2a7"
