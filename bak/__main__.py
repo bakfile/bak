@@ -1,6 +1,6 @@
 import functools
 from pathlib import Path
-
+from typing import Union
 import click
 from click_default_group import DefaultGroup
 
@@ -92,14 +92,17 @@ def bak_up(filename, bakfile_number):
 
 @bak.command("down", help="Restore from a .bakfile (.bakfiles deleted without '--keep')")
 @click.option("--keep", "-k",
-              is_flag=True,
-              default=False,
-              help="Keep .bakfiles")
+              is_flag=False,
+              default=0,
+              multiple=True,
+              type=str,
+              help="Keep .bakfiles (optionally accepts a bakfile #; can be used multiple times.\n" +\
+                    "Also accepts 'all'")
 @click.option("--quietly", "-q",
               is_flag=True,
               default=False,
               help="No confirmation prompt")
-@click.option('-d', '--destination', default=None, type=str)
+@click.option('-d', '-o', '--destination', default=None, type=str)
 @click.argument("filename", required=True)
 @click.argument("bakfile_number", metavar="[#]", required=False, type=int)
 def bak_down(filename: str, keep: bool, quietly: bool, destination: str, bakfile_number: int=0):
@@ -109,6 +112,13 @@ def bak_down(filename: str, keep: bool, quietly: bool, destination: str, bakfile
     filename = Path(filename).expanduser().resolve()
     if destination:
         destination = Path(destination).expanduser().resolve()
+    if not isinstance(keep, tuple):
+        if keep == -1 or keep == 'all':
+            keep = True
+        elif keep == 0:
+            keep = False
+    else:
+        keep = list(keep)
     commands.bak_down_cmd(filename, destination, keep, quietly, bakfile_number)
 
 
@@ -124,6 +134,30 @@ def bak_off(filename, quietly):
         # TODO better output here
         click.echo("Operation cancelled or failed.")
 
+@bak.command("del", help="Delete a single .bakfile by number (see `bak list FILENAME`)"
+                         "\n\n\talias: `bak rm`")
+@click.option("--quietly", "-q",
+              is_flag=True,
+              default=False,
+              help="Delete .bakfile without confirming")
+@click.argument("filename", required=True, type=click.Path(exists=False))
+@click.argument("number", metavar="#", required=False, type=int)
+def bak_del(filename, number, quietly):
+    filename = Path(filename).expanduser().resolve()
+    if not commands.bak_del_cmd(filename, number, quietly):
+        # TODO this is just a copy of `bak off`, so...
+        click.echo("Operation cancelled or failed.")
+
+@bak.command("rm", hidden=True, help="Delete a single .bakfile by number (see `bak list FILENAME`)"
+                         "\n\n\talias of `bak del`")
+@click.option("--quietly", "-q",
+              is_flag=True,
+              default=False,
+              help="Delete .bakfile without confirming")
+@click.argument("filename", required=True, type=click.Path(exists=False))
+@click.argument("number", metavar="#", required=False, type=int)
+def _bak_rm(filename, number, quietly):
+    bak_del(filename, number, quietly)
 
 @bak.command("open", help="View or edit a .bakfile in an external program")
 @click.option("--using", "--in", "--with",

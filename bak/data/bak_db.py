@@ -44,6 +44,14 @@ class BakDBHandler:
             db_conn.commit()
 
     def del_bakfile_entry(self, bak_entry: BakFile):
+       with sqlite3.connect(self.db_loc) as db_conn:
+            db_conn.execute(
+                """
+                DELETE FROM bakfiles WHERE bakfile=:bakfile
+                """, (bak_entry.bakfile_loc,))
+            db_conn.commit() 
+
+    def del_all_entries(self, bak_entry: BakFile):
         with sqlite3.connect(self.db_loc) as db_conn:
             db_conn.execute(
                 """
