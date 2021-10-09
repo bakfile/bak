@@ -515,7 +515,7 @@ def _bak_down_confirm_helper(filename,
             click.echo("Cancelled.")
             return False
 
-    erase = ''
+    erase = 'erase'
     keep_which = ''
     joint = ''
     _all = ''
