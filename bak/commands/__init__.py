@@ -391,9 +391,9 @@ def bak_up_cmd(filename: Path, bakfile_number: int=0):
     # Disambiguate
     if len(old_bakfile) == 1:
         old_bakfile = old_bakfile[0]
-        if bakfile_number > 1:
+        if bakfile_number and bakfile_number > 1:
             console.print(f"Only found 1 bakfile for {filename}")
-    elif bakfile_number > 0:
+    elif bakfile_number and bakfile_number > 0:
         old_bakfile = __get_bakfile_entry(filename, bakfile_number=bakfile_number, console=console)
     else:
         old_bakfile = __do_select_bakfile(old_bakfile,
