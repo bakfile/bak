@@ -1,6 +1,5 @@
 import functools
 from pathlib import Path
-from typing import Union
 
 
 import click
@@ -114,7 +113,7 @@ def bak_down(filename: str, keep: bool, quietly: bool, destination: str, bakfile
     if destination:
         destination = Path(destination).expanduser().resolve()
     if not isinstance(keep, tuple):
-        if keep == -1 or keep == 'all':
+        if keep in [-1, 'all']:
             keep = True
         elif keep == 0:
             keep = False
