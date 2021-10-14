@@ -176,7 +176,7 @@ def __identify_baks(entries):
 
 def __distinguish_baks(bakfiles):
     filenames = set(_bakfile.orig_abspath for _bakfile in bakfiles)
-    _identified_baks = dict()
+    _identified_baks = {}
     for _filename in filenames:
         _identified_baks[_filename] = __identify_baks(
             [_bakfile for _bakfile in bakfiles if _bakfile.orig_abspath == _filename])
@@ -391,9 +391,9 @@ def bak_up_cmd(filename: Path, bakfile_number: int=0):
     # Disambiguate
     if len(old_bakfile) == 1:
         old_bakfile = old_bakfile[0]
-        if bakfile_number > 1:
+        if bakfile_number and bakfile_number > 1:
             console.print(f"Only found 1 bakfile for {filename}")
-    elif bakfile_number > 0:
+    elif bakfile_number and bakfile_number > 0:
         old_bakfile = __get_bakfile_entry(filename, bakfile_number=bakfile_number, console=console)
     else:
         old_bakfile = __do_select_bakfile(old_bakfile,
@@ -461,74 +461,39 @@ def bak_down_cmd(filename: Path,
     else:
         destination = Path(bakfile_entry.orig_abspath)
 
-    if quiet:
-        confirm = 'y'
-    else:
-        if all((new_destination, destination.exists())):
-            if not click.confirm(f"Overwrite {destination}?", default=False):
-                click.echo("Cancelled.")
-                return
-
-        erase = ''
-        keep_which = ''
-        joint = ''
-        _all = ''
-        baks_to_keep: list[int] = None
-        if keep_bakfile:
-            erase = 'keep'
-            if isinstance(keep_bakfile, list):
-                keep_bakfile = sorted(set(keep_bakfile))
-                try:
-                    baks_to_keep = [int(i) for i in keep_bakfile]
-                except ValueError:
-                    if keep_bakfile != ['all']:
-                        click.echo("Error: bak down --keep only accepts bakfile #s or the word 'all'")
-                        click.echo("Cancelled.")
-                        return
-                if len(keep_bakfile) > 1:
-                    if len(keep_bakfile) > 2:
-                        joint = ', '
-                    else:
-                        joint = ' '
-                    keep_bakfile[-1] = "and " + keep_bakfile[-1]
-                    keep_which = ' ' + joint.join(keep_bakfile)
-                else:
-                    keep_which = ' ' + keep_bakfile[0]
-        if keep_which.endswith('all'):
-            _all = ' all'
-        elif len(keep_which.strip()) == 1:
-            keep_which = ' #' + keep_which.lstrip()
-        else:
-            keep_which = 's ' + keep_which.lstrip()
-
-        confirm_prompt = f"Confirm: Restore {filename}"
-
-        multiples = bool(len(bakfile_entries))
-        restore_from = f"{index + 1}" \
-            if (multiples or index != 0) \
-            else (f"{bakfile_number}" if bakfile_number else '')
-        confirm_prompt += f" from bakfile #{restore_from}" if restore_from else ''
-            
-        confirm_prompt += f" to {destination}" if new_destination else ""
-        confirm_prompt += f" and {erase}{_all} bakfile{keep_which if not _all else ('s' if multiples else '')}?"
-
-        confirm = click.confirm(confirm_prompt, default=False)
+    confirm = True if quiet else _bak_down_confirm_helper(filename,
+                                                          bakfile_number,
+                                                          bakfile_entries,
+                                                          destination,
+                                                          new_destination,
+                                                          keep_bakfile,
+                                                          index)
     if not confirm:
         console.print("Cancelled.")
         return
-    
+
     try:
         copy2(bakfile_entry.bakfile_loc, destination)
     except PermissionError:
         _sudo_bak_down_helper(bakfile_entry.bakfile_loc, destination)
 
     if not keep_bakfile and not new_destination:
-        click.echo(f"NOT KEEP_BAKFILE: {keep_bakfile}")
         for entry in bakfile_entries:
             if entry.restored:
                 if entry.bakfile_loc != bakfile_entry.bakfile_loc:
                     db_handler.set_restored_flag(entry, False)
         db_handler.set_restored_flag(bakfile_entry, True)
+
+    baks_to_keep = []
+    if isinstance(keep_bakfile, list):
+        keep_bakfile = sorted(set(keep_bakfile))
+        try:
+            baks_to_keep = [int(i) for i in keep_bakfile]
+        except ValueError:
+            if keep_bakfile != ['all']:
+                click.echo("Error: bak down --keep only accepts bakfile #s or the word 'all'")
+                click.echo("Cancelled.")
+                return
 
     args = [bakfile_entries] if not keep_bakfile else [bakfile_entry,
                                                        bakfile_entries,
@@ -536,6 +501,55 @@ def bak_down_cmd(filename: Path,
                                                        baks_to_keep]
     helper = __keep_bakfiles if keep_bakfile else __remove_bakfiles
     helper(*args)
+
+def _bak_down_confirm_helper(filename,
+                             bakfile_number,
+                             bakfile_entries,
+                             destination,
+                             new_destination, 
+                             keep_bakfile, 
+                             index):
+# TODO at this point, just turn this into something stateful
+    if all((new_destination, destination.exists())):
+        if not click.confirm(f"Overwrite {destination}?", default=False):
+            click.echo("Cancelled.")
+            return False
+
+    erase = 'erase'
+    keep_which = ''
+    joint = ''
+    _all = ''
+    if keep_bakfile:
+        erase = 'keep'
+        if isinstance(keep_bakfile, list):
+            if len(keep_bakfile) > 1:
+                if len(keep_bakfile) > 2:
+                    joint = ', '
+                else:
+                    joint = ' '
+                keep_bakfile[-1] = "and " + keep_bakfile[-1]
+                keep_which = ' ' + joint.join(keep_bakfile)
+            else:
+                keep_which = ' ' + keep_bakfile[0]
+    if keep_which.endswith('all'):
+        _all = ' all'
+    elif len(keep_which.strip()) == 1:
+        keep_which = ' #' + keep_which.lstrip()
+    else:
+        keep_which = 's ' + keep_which.lstrip()
+
+    confirm_prompt = f"Confirm: Restore {filename}"
+
+    multiples = bool(len(bakfile_entries))
+    restore_from = f"{index + 1}" \
+        if (multiples or index != 0) \
+        else (f"{bakfile_number}" if bakfile_number else '')
+    confirm_prompt += f" from bakfile #{restore_from}" if restore_from else ''
+        
+    confirm_prompt += f" to {destination}" if new_destination else ""
+    confirm_prompt += f" and {erase}{_all} bakfile{keep_which if not _all else ('s' if multiples else '')}?"
+
+    return click.confirm(confirm_prompt, default=False)
 
 def bak_del_cmd(filename:Path, bakfile_number:int, quietly=False):
     """ Deletes a bakfile by number
