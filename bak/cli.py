@@ -39,6 +39,9 @@ BASIC_HELP_TEXT = "bak FILENAME (creates a bakfile)\n\nalias: bak create\n\n" +\
     "See also: bak COMMAND --help"
 
 
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
+
+
 @click.group(cls=DefaultGroup, default='\0', no_args_is_help=True, help=BASIC_HELP_TEXT,
              invoke_without_command=True)
 # default command behavior is duplicated here because it's cleaner from a Click perspective,
@@ -53,6 +56,7 @@ def bak(version:bool=False):
 @normalize_path()
 @click.option("--version", required=False, is_flag=True, help="Print current version and exit.")
 @click.argument("filename", required=False, type=click.Path(exists=True))
+@click.command(context_settings=CONTEXT_SETTINGS)
 def _create(filename, version):
     create_bak_cmd(filename, version)
 
@@ -61,6 +65,7 @@ def _create(filename, version):
 @normalize_path()
 @click.option("--version", required=False, is_flag=True)
 @click.argument("filename", required=False, type=click.Path(exists=True))
+@click.command(context_settings=CONTEXT_SETTINGS)
 def create(filename, version):
     create_bak_cmd(filename, version)
 
@@ -80,6 +85,7 @@ def create_bak_cmd(filename, version):
 @normalize_path()
 @click.argument("filename", required=True, type=click.Path(exists=True))
 @click.argument("bakfile_number", metavar="[#]", required=False, type=int)
+@click.command(context_settings=CONTEXT_SETTINGS)
 def bak_up(filename, bakfile_number):
     if not filename:
         click.echo("A filename or operation is required.\n"
@@ -105,6 +111,7 @@ def bak_up(filename, bakfile_number):
 @click.option('-d', '-o', '--destination', default=None, type=str)
 @click.argument("filename", required=True)
 @click.argument("bakfile_number", metavar="[#]", required=False, type=int)
+@click.command(context_settings=CONTEXT_SETTINGS)
 def bak_down(filename: str, keep: bool, quietly: bool, destination: str, bakfile_number: int=0):
     if not filename:
         click.echo("A filename or operation is required.\n"
@@ -128,6 +135,7 @@ def bak_down(filename: str, keep: bool, quietly: bool, destination: str, bakfile
               default=False,
               help="Delete all related .bakfiles without confirming")
 @click.argument("filename", required=True)
+@click.command(context_settings=CONTEXT_SETTINGS)
 def bak_off(filename, quietly):
     filename = Path(filename).expanduser().resolve()
     if not commands.bak_off_cmd(filename, quietly):
@@ -142,6 +150,7 @@ def bak_off(filename, quietly):
               help="Delete .bakfile without confirming")
 @click.argument("filename", required=True, type=click.Path(exists=False))
 @click.argument("number", metavar="#", required=False, type=int)
+@click.command(context_settings=CONTEXT_SETTINGS)
 def bak_del(filename, number, quietly):
     filename = Path(filename).expanduser().resolve()
     if not commands.bak_del_cmd(filename, number, quietly):
@@ -156,6 +165,7 @@ def bak_del(filename, number, quietly):
               help="Delete .bakfile without confirming")
 @click.argument("filename", required=True, type=click.Path(exists=False))
 @click.argument("number", metavar="#", required=False, type=int)
+@click.command(context_settings=CONTEXT_SETTINGS)
 def _bak_rm(filename, number, quietly):
     bak_del(filename, number, quietly)
 
@@ -166,6 +176,7 @@ def _bak_rm(filename, number, quietly):
 @normalize_path()
 @click.argument("filename", required=True, type=click.Path(exists=True))
 @click.argument("bakfile_number", metavar="[#]", required=False, type=int)
+@click.command(context_settings=CONTEXT_SETTINGS)
 def bak_print(filename, using, bakfile_number):
     filename = Path(filename).expanduser().resolve()
     commands.bak_print_cmd(filename, using, bakfile_number)
@@ -180,6 +191,7 @@ def bak_print(filename, using, bakfile_number):
                 type=click.Path())
 @click.argument("bakfile_number", metavar="[#]", required=False, type=int)
 @normalize_path()
+@click.command(context_settings=CONTEXT_SETTINGS)
 def bak_get(filename, bakfile_number=0):
     to_where_you_once_belonged = Path(
         filename).expanduser().resolve()
@@ -194,6 +206,7 @@ def bak_get(filename, bakfile_number=0):
 @normalize_path()
 @click.argument("filename", required=True, type=click.Path(exists=True))
 @click.argument("bakfile_number", metavar="[#]", required=False, type=int)
+@click.command(context_settings=CONTEXT_SETTINGS)
 def bak_diff(filename, using, bakfile_number=0):
     filename = Path(filename).expanduser().resolve()
     commands.bak_diff_cmd(filename, command=using, bakfile_number=bakfile_number or 0)
@@ -219,6 +232,7 @@ def bak_diff(filename, using, bakfile_number=0):
                 required=False,
                 type=click.Path(exists=True))
 @normalize_path()
+@click.command(context_settings=CONTEXT_SETTINGS)
 def bak_list(colors, relpaths, compare, filename):
     if filename:
         filename = Path(filename).expanduser().resolve()
@@ -239,5 +253,6 @@ CFG_HELP_TEXT = '\b\nGet/set config values. Valid settings include:\n\n\t' + \
 @click.option("--get/--set", default=True)
 @click.argument("setting", required=True)
 @click.argument("value", required=False, nargs=-1, type=str)
+@click.command(context_settings=CONTEXT_SETTINGS)
 def bak_config(get, setting, value):
     commands.bak_config_command(get, setting, value)
