@@ -1,6 +1,6 @@
 # bak
 
-[![https://asciinema.org/a/442668](https://gist.github.com/veracioux/5281aa92b29e89c0da0086207640dfd2/raw/1a35f46b3b1ae00baed35911789faedb6fe8519f/bak_demo.svg)]()
+[![](https://gist.github.com/veracioux/5281aa92b29e89c0da0086207640dfd2/raw/1a35f46b3b1ae00baed35911789faedb6fe8519f/bak_demo.svg)](https://asciinema.org/a/442668)
 
 **bak** is a command-line utility for creating and restoring backup copies of single files - `.bak` files - without clutter.
 
