@@ -8,6 +8,9 @@ configure() {
         DELAY='0.05s'
         DELAY_SEP='0.2s'
         DELAY_PROMPT='1s'
+        TUTERM_NAME='bak-demo'
+    else
+        TUTERM_NAME='bak-tutorial'
     fi
 }
 
@@ -71,7 +74,8 @@ run() {
         bak down todo.txt 1
     else
         echo "1 bakfiles discarded"
-        { sleep 1 && yes; } | bak down todo.txt 1
+        # { sleep 1 && yes; } | bak down todo.txt 1
+        yes | bak down todo.txt 1
         echo y
     fi
     echo
