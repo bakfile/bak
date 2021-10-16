@@ -4,9 +4,11 @@ export PYTHONPATH="$(pip show bak | grep 'Location:' | sed 's/Location: //')"
 USER_HOME="$HOME"
 
 configure() {
-    DELAY='0.05s'
-    DELAY_SEP='0.2s'
-    DELAY_PROMPT='1s'
+    if mode demo; then
+        DELAY='0.05s'
+        DELAY_SEP='0.2s'
+        DELAY_PROMPT='1s'
+    fi
 }
 
 bak() {
@@ -42,9 +44,9 @@ run() {
         M "-- bak demo start --"
         echo
     fi
-                                                                    # Expected-command tracker
+                                                                    # Command tracker
     c ls
-    c cat todo.txt
+    c cat todo.txt                                                  #
     sleep 1
 
     echo
@@ -55,7 +57,7 @@ run() {
     m "<< You won't usually have to know where bakfiles are >>"
     m
     if mode tutorial; then sleep 1; fi
-    m "Let's make a change to the file"
+    M "Change the file"
 
     echo "- [ ] Take out trash         # Freshly added" >> todo.txt
     e "$EDITOR" todo.txt                                            #
@@ -66,19 +68,14 @@ run() {
 
     echo
     sleep 1
-    M "Let's restore the file from entry #1 (the original)"
+    M "Restore the file from entry #1 (the original)"
     e bak down todo.txt 1                                           #
     if mode tutorial; then
         bak down todo.txt 1
     else
-        # workaround to inadequate stdout message
-        echo -ne "Confirm: Restore /tmp/tuterm/home1/todo.txt" \
-                 "from bakfile #1 and  bakfiles ? [y/N]:"
-        sleep 1
-        echo " y"
-        sleep 0.3
         echo "1 bakfiles discarded"
-        { sleep 1 && yes; } | bak down todo.txt 1 >/dev/null
+        { sleep 1 && yes; } | bak down todo.txt 1
+        echo y
     fi
     echo
     c cat todo.txt                                                  #
