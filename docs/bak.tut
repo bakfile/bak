@@ -40,9 +40,6 @@ run() {
     if mode tutorial; then
         m "-- bak tutorial start --"
         echo
-    else
-        M "-- bak demo start --"
-        echo
     fi
                                                                     # Command tracker
     c ls
@@ -81,8 +78,6 @@ run() {
     c cat todo.txt                                                  #
 
     if mode demo; then
-        echo
-        M "-- bak demo end --"
         exit
     fi
 # ┏━━━━━━━━━━┓
