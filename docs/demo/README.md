@@ -24,7 +24,10 @@ To upload the demo to asciinema and create an SVG animated image:
 ```
 
 This will copy the asciinema URL to your clipboard and print it to your
-terminal. The SVG animation is created as `./bak_demo.svg`.
+terminal. The SVG animation will be created as `./bak_demo.svg`.
 
-You should preview the demo first to verify it, so as to avoid uploading content
-unnecessarily.
+**NOTE:**
+- You should preview the demo first to verify it, so as to avoid uploading
+  content unnecessarily.
+- You should run the upload script in a new terminal so it doesn't mess up your
+  terminal size

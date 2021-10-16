@@ -2,8 +2,8 @@
 
 # NOTE: Change this to suit your needs
 
-TERM_WIDTH=110
-TERM_HEIGHT=30
+TERM_WIDTH=90
+TERM_HEIGHT=25
 RECORDED_COMMAND="tuterm bak.tut --mode demo"
 alias copy='xsel -b'
 
@@ -17,6 +17,7 @@ alias copy='xsel -b'
 
 rm -f /tmp/bakfile_bak.cast
 
+stty cols "$TERM_WIDTH" rows "$TERM_HEIGHT"
 # Record the command
 asciinema rec -c "$RECORDED_COMMAND" /tmp/bakfile_bak.cast
 
