@@ -1,0 +1,107 @@
+#!/usr/bin/env tuterm
+
+export PYTHONPATH="$(pip show bak | grep 'Location:' | sed 's/Location: //')"
+USER_HOME="$HOME"
+
+configure() {
+    if mode demo; then
+        DELAY='0.05s'
+        DELAY_SEP='0.2s'
+        DELAY_PROMPT='1s'
+        TUTERM_NAME='bak-demo'
+    else
+        TUTERM_NAME='bak-tutorial'
+    fi
+}
+
+bak() {
+    python "$PYTHONPATH"/bak/__main__.py "$@"
+}
+
+editor() {
+    if mode tutorial; then
+        "$EDITOR" "$@"
+    else
+        # This is a bit of a hack
+        timeout 2.5 tmux new-session "$EDITOR +'set ft=sh' $*" >/dev/null
+    fi
+}
+
+run() {
+    # Prepare the working environment
+    mkdir -p ~/.config
+    cp "$USER_HOME/.config/bak.cfg.default" ~/.config/
+    if mode demo; then
+        EDITOR="vim"
+        echo "set -g status off" > ~/.tmux.conf
+    fi
+    echo -e "- [X] Install bak\n- [X] Make my life easier" > todo.txt
+
+# ┏━━━━━━━━━━━━━━━━━━━━━┓
+# ┃ Tutorial/demo start ┃
+# ┗━━━━━━━━━━━━━━━━━━━━━┛
+    if mode tutorial; then
+        m "-- bak tutorial start --"
+        echo
+    fi
+                                                                    # Command tracker
+    c ls
+    c cat todo.txt                                                  #
+    sleep 1
+
+    echo
+    M "Backup todo.txt"
+    c bak todo.txt                                                  #
+    if mode tutorial; then sleep 1; fi
+    m
+    m "<< You won't usually have to know where bakfiles are >>"
+    m
+    if mode tutorial; then sleep 1; fi
+    M "Change the file"
+
+    echo "- [ ] Take out trash         # Freshly added" >> todo.txt
+    e "$EDITOR" todo.txt                                            #
+    editor todo.txt
+    M "Let's back up the changes"
+    c bak todo.txt                                                  #
+    c bak list todo.txt                                             #
+
+    echo
+    sleep 1
+    M "Restore the file from entry #1 (the original)"
+    e bak down todo.txt 1                                           #
+    if mode tutorial; then
+        bak down todo.txt 1
+    else
+        echo "1 bakfiles discarded"
+        # { sleep 1 && yes; } | bak down todo.txt 1
+        yes | bak down todo.txt 1
+        echo y
+    fi
+    echo
+    c cat todo.txt                                                  #
+
+    if mode demo; then
+        exit
+    fi
+# ┏━━━━━━━━━━┓
+# ┃ Demo end ┃
+# ┗━━━━━━━━━━┛
+
+    m "Let's see where the backup is located:"
+    c bak where todo.txt                                            #
+
+    m "We're done here"
+    c bak off todo.txt                                              #
+
+    m "If you have any questions, just run:"
+    c bak                                                           #
+
+    m
+    m "-- bak tutorial end --"
+# ┏━━━━━━━━━━━━━━┓
+# ┃ Tutorial end ┃
+# ┗━━━━━━━━━━━━━━┛
+}
+
+# vim: filetype=sh
