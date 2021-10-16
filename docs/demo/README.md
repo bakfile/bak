@@ -1,3 +1,10 @@
+## Dependencies
+
+- [asciinema](https://github.com/asciinema/asciinema)
+- [tuterm](https://github.com/veracioux/tuterm)
+
+## Running
+
 To run a non-interactive demo:
 
 ```shell
