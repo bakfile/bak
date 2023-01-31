@@ -1,5 +1,15 @@
 # bak
 
+## Note
+
+**bak** has been abandonware for a little while now. When I got back around to stale PRs and feature requests, I made the most common of unpleasant discoveries among software devs: the first version simply won't do.
+
+As such, **bak is being rewritten**, with early versions tentatively scheduled for "release" in late February or early March of 2023. I apologize for any inconvenience this period of inactivity, and the following period of "hidden" development, might have caused anyone.
+
+- ChanceNCounter, maintainer
+
+---
+
 **bak** is a command-line utility for creating and restoring backup copies of single files - `.bak` files - without clutter.
 
 - [Description and Usage](#description-and-usage)
