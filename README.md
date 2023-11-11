@@ -12,11 +12,13 @@ As such, **bak is being rewritten**, with early versions tentatively scheduled f
 
 **bak** is a command-line utility for creating and restoring backup copies of single files - `.bak` files - without clutter.
 
-- [Description and Usage](#description-and-usage)
-- [Additional Commands](#additional-commands-and-flags)
-- [Installation and Requirements](#installation-and-requirements)
-- [Current State](#current-state)
-- [Contributing](#contributing)
+- [bak](#bak)
+  - [Description and Usage](#description-and-usage)
+  - [Additional commands and flags](#additional-commands-and-flags)
+  - [Installation and Requirements](#installation-and-requirements)
+    - [Installation](#installation)
+  - [Current state](#current-state)
+  - [Contributing](#contributing)
 
 ## Description and Usage
 
@@ -40,13 +42,12 @@ Don't worry, they're easy to remember after a minute:
 `bak down`: I've screwed up, undo the damage.  
 `bak off`: I'm done working. Go away, **bak**, and take your .bakfile with you.
 
-All of **bak**'s commands will disambiguate between multiple copies of the same file. In other words, you can `bak my_thing.txt` as many times as you want, until you're finished working, if you'd prefer to keep multiples instead of using `bak up`. At the moment, all you've got to go by are timestamps when it asks you to pick a .bakfile, but this will improve.
+All of **bak**'s commands will disambiguate between multiple copies of the same file. In other words, you can `bak my_thing.txt` as many times as you want, until you're finished working, if you'd prefer to keep multiples instead of using `bak up`.
 
 **NOTE:** `bak down` will fall back on `sudo cp` if necessary. Please don't run `sudo bak`. This may create parallel config and bakfiles in root's XDG directories.
 
 ## Additional commands and flags
 
-`bak down --keep my_file` - Restores from .bakfile, does not delete .bakfile  
 `bak diff my_file` Compare a .bakfile using `diff` (configurable)  
 `bak list`/`bak list my_file` - List all .bakfiles, or just `my_file`'s  
 `bak open my_file` View a .bakfile in $PAGER (configurable)  
@@ -56,6 +57,15 @@ All of **bak**'s commands will disambiguate between multiple copies of the same 
 
         bak open --using cat my_file.json
         bak open --in nvim my_file.json
+
+`bak del my_file [N]` Delete a specific .bakfile. If N is provided, deletes `my_file.bak` #N. Otherwise, prompts to disambiguate.  
+
+`bak down --keep [N|all] my_file` - Restores from .bakfile, keeping bakfile #N, or all bakfiles. May be invoked more than once.  
+> examples:  
+
+        bak down --keep all my_file.json // keep all bakfiles  
+        bak down --keep 1 my_file.json // keep bakfile #1  
+        bak down -k 1 -k 4 my_file.json // keep bakfiles #1 and #4  
 
 `bak where my_file` Get the abspath of a .bakfile, in case, for some reason, you want to pipe it somewhere
 
@@ -82,8 +92,8 @@ In `bak`'s case, I usually test system-level usage with a simple and naive `setu
 
 ## Current state
 
-(updated Jan. 20, 2020)  
-This is a very pre-alpha version, as in, this is a spaghetti proof-of-concept. Perhaps ~~5-6~~ ~~12-15~~ 20 hours have been spent on development so far. As such, it's only "working" in the strictest sense.
+(updated Oct. 06, 2021)  
+This remains a very pre-alpha version, as in, this is a spaghetti proof-of-concept. Perhaps ~~5-6~~ ~~12-15~~ ~~20~~ 40 hours have been spent on development so far. As such, it's only "working" in ~~the strictest~~ an amateurish sense.
 
 At the moment, **bak** stores its database and your bakfiles in `$XDG_DATA_HOME/bak`. If `$XDG_DATA_HOME` is not set, its specified default is used, and your stuff ends up in `~/.local/share/bak`.
 
