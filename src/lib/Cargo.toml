@@ -9,13 +9,13 @@ edition = "2021"
 path = "lib.rs"
 
 [dependencies]
-clap = { version = "4.5.4", features = ["cargo"] }
-chrono = "0.4.38"
+clap = { version = "4.5.23", features = ["cargo"] }
+chrono = "0.4.39"
 directories = "5.0.1"
-log = "0.4.21"
+log = "0.4.22"
 rusqlite = "0.31.0"
 semver = { version = "1.0.23", features = ["serde"] }
-serde = { version = "1.0.201", features = ["derive"] }
+serde = { version = "1.0.215", features = ["derive"] }
 shellexpand = "3.1.0"
-toml = "0.8.12"
-thiserror = "1.0.61"
+toml = "0.8.19"
+thiserror = "1.0.69"
