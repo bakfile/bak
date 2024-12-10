@@ -12,7 +12,7 @@ path = "src/bin/bak/main.rs"
 [dependencies]
 bakfile = {path = "src/lib"}
 
-anyhow = "1.0.83"
-clap = { version = "4.5.4", features = ["cargo"] }
-log = "0.4.21"
+anyhow = "1.0.94"
+clap = { version = "4.5.23", features = ["cargo"] }
+log = "0.4.22"
 semver = { version = "1.0.23", features = ["serde"] }
