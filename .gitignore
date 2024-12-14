@@ -1,5 +1,8 @@
 /target
 
+# lapce
+.lapce
+
 # VSCode
 *.code-workspace
 .vscode
