@@ -6,19 +6,32 @@ use std::rc::Rc;
 use directories::BaseDirs;
 use serde::Deserialize;
 
-//use crate::configuration::get_config_template_string as template_string;
 use crate::util::SystemError;
+
+/* Define defaults */
+#[cfg(target_family = "unix")]
+static DEFAULT_OPEN_CMD: &str = 
+    if cfg!(target_os = "macos") {"open"}
+    else {"vim"};
+#[cfg(target_family = "unix")]
+static DEFAULT_DIFF_CMD: &str = "diff";
+
+#[cfg(target_os = "windows")]
+static DEFAULT_OPEN_CMD: &str = "start";
+#[cfg(target_os = "windows")]
+static DEFAULT_DIFF_CMD: &str = "fd";
+
 
 pub fn get_config() -> Rc<Config> {
     let config_path = Config::get_config_path().unwrap(); // Look for config file
     let out = match config_path.exists() {
         false => {
             // Config file not found
-            let configuration: Config = Config::from_toml(None); // Generate default config file,
+            let configuration: Config = Config::load(None); // Generate default config file,
             configuration.save().unwrap(); // and write
             Rc::new(configuration)
         }
-        true => Rc::new(Config::from_toml(Some(config_path.as_path()))),
+        true => Rc::new(Config::load(Some(config_path.as_path()))),
     };
     trace!("Generated config object: {:p}", out);
     out
@@ -46,7 +59,7 @@ pub struct Config {
     pub(crate) bak_diff_exec: String,
     pub(crate) bak_list_relative_paths: bool,
     pub(crate) bak_list_colors: bool,
-    pub(crate) bakfile_config_generated_by_library_version: semver::Version,
+    pub(crate) bakfile_library_version: semver::Version,
 }
 
 impl fmt::Display for Config {
@@ -69,26 +82,32 @@ impl fmt::Display for Config {
             self.bak_diff_exec,
             self.bak_list_relative_paths,
             self.bak_list_colors,
-            self.bakfile_config_generated_by_library_version.to_string(),
+            self.bakfile_library_version.to_string(),
             Config::get_config_path().unwrap() // if this doesn't return a path, how did we get here?
         )
     }
 }
 
 impl Config {
-    fn gen_empty() -> Config {
-        Config {
-            bakfile_location: "default".to_string(),
-            bak_database_location: "default".to_string(),
-            bak_open_exec: "default".to_string(),
-            bak_diff_exec: "default".to_string(),
+    fn gen_default() -> Result<Config, SystemError> {
+        let basedirs = match BaseDirs::new() {
+            Some(basedirs) => basedirs,
+            None => {
+                return Err(SystemError::BASE_DIRS_ERROR.into());
+            }
+        };
+        Ok(Config {
+            bakfile_location: basedirs.data_local_dir().join("bak/bakfiles").to_str().unwrap().to_string(), // this can't be None if we didn't already error out above
+            bak_database_location: basedirs.data_local_dir().join("bak/bak.db").to_str().unwrap().to_string(),
+            bak_open_exec: DEFAULT_OPEN_CMD.to_string() + " %f",
+            bak_diff_exec: DEFAULT_DIFF_CMD.to_string() + " %old %new",
             bak_list_relative_paths: false,
             bak_list_colors: true,
-            bakfile_config_generated_by_library_version: crate::util::LIBBAKFILE_VERSION(),
-        }
+            bakfile_library_version: crate::util::LIBBAKFILE_VERSION(),
+        })
     }
 
-    pub fn from_toml(path: Option<&Path>) -> Config {
+    pub fn load(path: Option<&Path>) -> Config {
         let config_path = &Self::get_config_path().unwrap();
         let path = match path {
             Some(path) => path,
@@ -98,7 +117,7 @@ impl Config {
             true => (),
             false => {
                 // Config file does not exist. Write one.
-                let empty_config = Self::gen_empty();
+                let empty_config = Self::gen_default().unwrap();
                 empty_config.save().unwrap();
             }
         }
@@ -108,8 +127,17 @@ impl Config {
                 panic!("Attempted to read invalid config file. {:?}", e);
             }
         };
-        let out: Config = match toml::from_str(i_file.as_str()) {
-            Ok(conf) => conf,
+        let out: Config = match i_file.parse::<toml_edit::DocumentMut>() {
+            // TODO internal error handling for this parse run
+            Ok(conf) => Config {
+                bakfile_location: conf["bakfile_location"].as_str().unwrap().to_string(),
+                bak_database_location: conf["bak_database_location"].as_str().unwrap().to_string(),
+                bak_open_exec: conf["bak_open_exec"].as_str().unwrap().to_string(),
+                bak_diff_exec: conf["bak_diff_exec"].as_str().unwrap().to_string(),
+                bak_list_relative_paths: conf["bak_list_relative_paths"].as_bool().unwrap(),
+                bak_list_colors: conf["bak_list_colors"].as_bool().unwrap(),
+                bakfile_library_version: semver::Version::parse(conf["bak_config_generated_by_library_version"].as_str().unwrap()).unwrap()
+            },
             Err(e) => {
                 panic!("Config file did not parse to valid TOML. {:?}", e);
             }
@@ -127,16 +155,15 @@ impl Config {
             out.bak_open_exec,
             out.bak_diff_exec,
             out.bak_list_colors,
-            out.bakfile_config_generated_by_library_version
+            out.bakfile_library_version
         );
         out
     }
 
     pub fn save(&self) -> Result<(), std::io::Error> {
         let config_path = Self::get_config_path().unwrap();
-        // let out_str = template_string(&self)?;
-        let out_str = "TODO"; // TODO
-        match std::fs::write(config_path, out_str) {
+        let out_str = crate::config_template::get_config_template_string(&self); // TODO
+        match std::fs::write(config_path, out_str.unwrap()) {
             Ok(_) => Ok(()),
             Err(e) => Err(e.into()),
         }
@@ -149,7 +176,7 @@ impl Config {
                 return Err(SystemError::BASE_DIRS_ERROR.into());
             }
         };
-        let config_path = basedirs.config_dir().join(Path::new("bak.conf.toml"));
+        let config_path = basedirs.config_dir().join(Path::new("bak.conf"));
         Ok(config_path)
     }
 }
