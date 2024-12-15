@@ -1,6 +1,7 @@
 mod bakfile_struct;
 mod config;
 mod config_template;
+mod db;
 mod enums;
 mod versioning;
 
