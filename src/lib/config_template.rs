@@ -3,6 +3,8 @@ extern crate shellexpand;
 
 use anyhow::Result;
 
+use crate::config;
+
 pub(crate) fn get_config_template_string(i_config: &crate::config::Config) -> Result<String> {
     return Ok(format!(
         "###
@@ -11,17 +13,13 @@ pub(crate) fn get_config_template_string(i_config: &crate::config::Config) -> Re
 
 ###
 #   Where bakfiles are stored. default:
-#   $XDG_DATA_HOME/bak/bakfiles
-#   or
-#   ~/.local/share/bak/bakfiles
+#   \"{default_bakfile_location}\"
 ###
 bakfile_location = \"{bakfile_location}\"
 
 ###
 #   Location of bakfile database
-#   default: $XDG_DATA_HOME/bak/bak.db
-#   or
-#   ~/.local/share/bak/bak.db
+#   \"{default_bakdb_location}\"
 ###
 bak_database_location = \"{bak_database_location}\"
 
@@ -58,6 +56,8 @@ bak_config_generated_by_library_version = \"{bakfile_version}\"
         bak_diff_exec = i_config.bak_diff_exec,
         bak_list_relpaths = i_config.bak_list_relative_paths,
         bak_list_colors = i_config.bak_list_colors,
-        bakfile_version = i_config.bakfile_library_version
+        bakfile_version = i_config.bakfile_library_version,
+        default_bakfile_location = config::get_default_bakfile_loc().unwrap().to_str().unwrap(),
+        default_bakdb_location = config::get_default_bak_db_loc().unwrap().to_str().unwrap()
     ));
 }
