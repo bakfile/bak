@@ -11,57 +11,56 @@ use crate::util::SystemError;
 
 #[allow(nonstandard_style)]
 const FRESH_DB_COMMAND: &'static str =
-    "CREATE TABLE if not exists bakfiles (original_file,
-    original_abspath,
-    bakfile,
-    date_created,
-    date_modified,
-    restored)";
+    "CREATE TABLE if not exists bakfiles (original_file, original_abspath, bakfile, date_created, date_modified, restored)";
 
-pub struct BakDBHandler<'db, T: 'db> {
-    configuration: Rc<Config>,
-    pub(crate) conn: Connection,
-    _lifetimehell: std::marker::PhantomData<&'db T>,
+fn get_connection(configuration: &Config) -> rusqlite::Result<Connection> {
+    let path = PathBuf::from(configuration.bak_database_location.clone());
+    if path.exists() {
+        debug!("Connecting to database: {}", path.display());
+        let conn =
+            Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_WRITE)
+                .expect(&SystemError::CORRUPT_BAK_DB_ERROR.to_string());
+        debug!("Database connection successful");
+        return Ok(conn);
+    }
+    warn!(
+        "Bakfile database not found. Writing a new one at: {}",
+        path.to_str().unwrap()
+    );
+    let conn = Connection::open(path);
+    match conn {
+        Ok(ref _conn) => {}
+        Err(e) => {
+            return Err(e);
+        }
+    };
+    let conn = conn.expect(&SystemError::CORRUPT_BAK_DB_ERROR.to_string());
+    debug!("Empty database created");
+    conn.execute(FRESH_DB_COMMAND, [])
+        .expect("Unable to write fresh bakfile database.");
+    debug!("Clean bakfile database successfully written");
+    Ok(conn)
 }
 
-impl<'db, T> BakDBHandler<'db, T> {
-    pub(crate) fn new(&self, configuration: Rc<Config>) -> Result<BakDBHandler<'static, T>, rusqlite::Error> {
-        let conn = self.get_connection().unwrap();
+pub struct BakDBHandler<'db> {
+    configuration: Rc<Config>,
+    pub(crate) conn: Connection,
+    _lifetimehell: std::marker::PhantomData<&'db bool>,
+}
+
+impl<'db> BakDBHandler<'db> {
+    pub fn new(configuration: Rc<Config>) -> Result<BakDBHandler<'db>, rusqlite::Error> {
+        let path = PathBuf::from(configuration.bak_database_location.clone());
+        if !path.exists() {
+            std::fs::create_dir_all(path.parent().unwrap()).expect("failed to create containing folders for bakfile database");
+        }
+        let conn = get_connection(&configuration).unwrap();
         let out = BakDBHandler {
             configuration,
             conn,
             _lifetimehell: std::marker::PhantomData,
         };
         Ok(out)
-    }
-
-    fn get_connection(&self) -> rusqlite::Result<Connection> {
-        let path = PathBuf::from(&self.configuration.bak_database_location);
-        if path.exists() {
-            debug!("Connecting to database: {}", path.display());
-            let conn =
-                Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_WRITE)
-                    .expect(&SystemError::CORRUPT_BAK_DB_ERROR.to_string());
-            debug!("Database connection successful");
-            return Ok(conn);
-        }
-        warn!(
-            "Bakfile database not found. Writing a new one at: {}",
-            path.to_str().unwrap()
-        );
-        let conn = Connection::open(path);
-        match conn {
-            Ok(ref _conn) => {}
-            Err(e) => {
-                return Err(e);
-            }
-        };
-        let conn = conn.expect(&SystemError::CORRUPT_BAK_DB_ERROR.to_string());
-        debug!("Empty database created");
-        conn.execute(FRESH_DB_COMMAND, [("")])
-            .expect("Unable to write fresh bakfile database.");
-        debug!("Clean bakfile database successfully written");
-        Ok(conn)
     }
 
     fn construct_bakfile_from_entry(&self, row: &Row) -> Result<Bakfile, rusqlite::Error> {
@@ -179,7 +178,7 @@ impl<'db, T> BakDBHandler<'db, T> {
         self.construct_bakfiles_from_entries(rows)
     }
 
-    pub fn del_entry(&self, bakfile: Bakfile) -> Result<bool, rusqlite::Error> {
+    pub fn del_entry(&self, bakfile: Bakfile) -> Result<(), rusqlite::Error> {
         let params = params![bakfile.bakfile_path.to_str()];
         match self.conn.execute(
             "SELECT * FROM bakfiles WHERE bakfile_path = ?1 ORDER BY rowid",
@@ -190,7 +189,7 @@ impl<'db, T> BakDBHandler<'db, T> {
                     .conn
                     .execute("DELETE FROM bakfiles WHERE bakfile_path = ?1", params)
                 {
-                    Ok(1) => return Ok(true),
+                    Ok(1) => return Ok(()),
                     Ok(_) => {
                         panic!("Catastrophic error updating bakfile database: deleted too many entries");
                     }
@@ -227,7 +226,7 @@ impl<'db, T> BakDBHandler<'db, T> {
         &self,
         old_bakfile: Bakfile,
         new_bakfile: Bakfile,
-    ) -> Result<bool, rusqlite::Error> {
+    ) -> Result<(), rusqlite::Error> {
         let old_params = params![
             old_bakfile.bakfile_path.to_str(),
             old_bakfile.initial_creation.to_rfc3339()
@@ -250,7 +249,7 @@ impl<'db, T> BakDBHandler<'db, T> {
                     }
                 };
                 self.create_entry(new_bakfile).unwrap();
-                Ok(true)
+                Ok(())
             }
             Ok(_) => {
                 panic!("Error updating bakfile database: found too many bakfiles matching query");
@@ -263,7 +262,7 @@ impl<'db, T> BakDBHandler<'db, T> {
         &self,
         bakfile: Bakfile,
         status: bool,
-    ) -> Result<bool, rusqlite::Error> {
+    ) -> Result<(), rusqlite::Error> {
         match self.conn.execute(
             "UPDATE bakfiles SET restored = ?1 WHERE bakfile_path = ?2 AND initial_creation = ?3",
             params![
@@ -272,7 +271,7 @@ impl<'db, T> BakDBHandler<'db, T> {
                 bakfile.initial_creation.to_rfc3339()
             ],
         ) {
-            Ok(1) => Ok(true),
+            Ok(1) => Ok(()),
             Ok(_) => {
                 panic!("Error writing to bakfile database: wrote too many restored flags at once");
             }

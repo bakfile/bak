@@ -10,6 +10,10 @@ pub mod configuration {
     pub use crate::config::*;
 }
 
+pub mod bakdb {
+    pub use crate::db::BakDBHandler;
+}
+
 pub mod util {
     pub use crate::versioning::*;
     pub use crate::enums::*;
