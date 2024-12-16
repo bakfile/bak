@@ -26,8 +26,22 @@ fn main() -> anyhow::Result<()> {
         restored: false,
         rowid: None
     };
-    bakdb.create_entry(_bakfile).expect("");
+    bakdb.create_entry(_bakfile.clone()).expect("");
     let entries = bakdb.get_all_entries().expect("");
     println!("{:?}", entries);
+    bakdb.del_entry(_bakfile.clone()).unwrap();
+    let entries = bakdb.get_all_entries().expect("");
+    println!("{:?}", entries);
+
+    bakdb.create_entry(_bakfile.clone()).expect("");
+    bakdb.create_entry(_bakfile.clone()).expect("");
+    let entries = bakdb.get_all_entries().expect("");
+    println!("{:?}", entries);
+
+    bakdb.del_file_entries(_bakfile.original_path.clone()).expect("");
+    let entries = bakdb.get_all_entries().expect("");
+    println!("{:?}", entries);
+
+
     Ok(())
 }

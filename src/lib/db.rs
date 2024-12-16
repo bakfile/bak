@@ -11,7 +11,14 @@ use crate::util::SystemError;
 
 #[allow(nonstandard_style)]
 const FRESH_DB_COMMAND: &'static str =
-    "CREATE TABLE if not exists bakfiles (original_file, original_abspath, bakfile, date_created, date_modified, restored)";
+    "CREATE TABLE if not exists bakfiles(
+        original_file,
+        original_abspath,
+        bakfile,
+        date_created,
+        date_modified,
+        restored
+        )";
 
 fn get_connection(configuration: &Config) -> rusqlite::Result<Connection> {
     let path = PathBuf::from(configuration.bak_database_location.clone());
@@ -43,7 +50,6 @@ fn get_connection(configuration: &Config) -> rusqlite::Result<Connection> {
 }
 
 pub struct BakDBHandler<'db> {
-    configuration: Rc<Config>,
     pub(crate) conn: Connection,
     _lifetimehell: std::marker::PhantomData<&'db bool>,
 }
@@ -56,7 +62,6 @@ impl<'db> BakDBHandler<'db> {
         }
         let conn = get_connection(&configuration).unwrap();
         let out = BakDBHandler {
-            configuration,
             conn,
             _lifetimehell: std::marker::PhantomData,
         };
@@ -181,15 +186,22 @@ impl<'db> BakDBHandler<'db> {
     pub fn del_entry(&self, bakfile: Bakfile) -> Result<(), rusqlite::Error> {
         let params = params![bakfile.bakfile_path.to_str()];
         match self.conn.execute(
-            "SELECT * FROM bakfiles WHERE bakfile_path = ?1 ORDER BY rowid",
+            "SELECT * FROM bakfiles WHERE bakfile = ?1 ORDER BY rowid",
             params,
         ) {
-            Ok(1) => {
+            Ok(1) |
+            Err(rusqlite::Error::ExecuteReturnedResults) => {   // the error being passed through here originates from
+                                                                // a change in rusqlite which only inconveniences
+                                                                // the programmer, for no gain in safety
+                debug!("successfully found entry in db");
                 match self
                     .conn
-                    .execute("DELETE FROM bakfiles WHERE bakfile_path = ?1", params)
+                    .execute("DELETE FROM bakfiles WHERE bakfile = ?1", params)
                 {
-                    Ok(1) => return Ok(()),
+                    Ok(1) => {
+                        debug!("successfully deleted entry from db");
+                        return Ok(())
+                    },
                     Ok(_) => {
                         panic!("Catastrophic error updating bakfile database: deleted too many entries");
                     }
@@ -215,7 +227,10 @@ impl<'db> BakDBHandler<'db> {
             .conn
             .execute("DELETE FROM bakfiles WHERE original_abspath = ?1", params)
         {
-            Ok(n) => return Ok(n),
+            Ok(n) => {
+                debug!("successfully deleted entries from db");
+                return Ok(n)
+            },
             Err(e) => {
                 return Err(e);
             }
@@ -232,12 +247,12 @@ impl<'db> BakDBHandler<'db> {
             old_bakfile.initial_creation.to_rfc3339()
         ];
         match self.conn.execute(
-            "SELECT * FROM bakfiles WHERE bakfile_path = ?1 AND initial_creation = ?2 ORDER BY rowid",
+            "SELECT * FROM bakfiles WHERE bakfile = ?1 AND initial_creation = ?2 ORDER BY rowid",
             old_params,
         ) {
             Ok(1) => {
                 match self.conn.execute(
-                    "DELETE FROM bakfiles WHERE bakfile_path = ?1 AND initial_creation = ?2",
+                    "DELETE FROM bakfiles WHERE bakfile = ?1 AND initial_creation = ?2",
                     old_params,
                 ) {
                     Ok(1) => (),
@@ -264,7 +279,7 @@ impl<'db> BakDBHandler<'db> {
         status: bool,
     ) -> Result<(), rusqlite::Error> {
         match self.conn.execute(
-            "UPDATE bakfiles SET restored = ?1 WHERE bakfile_path = ?2 AND initial_creation = ?3",
+            "UPDATE bakfiles SET restored = ?1 WHERE bakfile = ?2 AND initial_creation = ?3",
             params![
                 status,
                 bakfile.bakfile_path.to_str(),
