@@ -2,12 +2,14 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use anyhow::{Context, Result};
-use log::{debug, warn};
+use log::{debug, trace, warn};
 use rusqlite::{params, Connection, Row, Rows};
 
 use crate::Bakfile;
 use crate::config::Config;
 use crate::util::SystemError;
+
+// TODO this file still needs more logging, but at least it's half done now
 
 #[allow(nonstandard_style)]
 const FRESH_DB_COMMAND: &'static str =
@@ -23,17 +25,24 @@ const FRESH_DB_COMMAND: &'static str =
 fn get_connection(configuration: &Config) -> rusqlite::Result<Connection> {
     let path = PathBuf::from(configuration.bak_database_location.clone());
     if path.exists() {
-        debug!("Connecting to database: {}", path.display());
+        debug!("connecting to database: {}", path.display());
         let conn =
             Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_WRITE)
                 .expect(&SystemError::CORRUPT_BAK_DB_ERROR.to_string());
-        debug!("Database connection successful");
+        debug!("database connection successful");
         return Ok(conn);
     }
     warn!(
-        "Bakfile database not found. Writing a new one at: {}",
+        "bakfile database not found. Writing a new one at: {}",
         path.to_str().unwrap()
     );
+    
+    let parent_path = path.parent().unwrap();
+    if !parent_path.exists() {
+        std::fs::create_dir_all(path.parent().unwrap()).expect("failed to create containing folders for bakfile database");
+        trace!("created containing folders for bakfile database");
+    }
+    
     let conn = Connection::open(path);
     match conn {
         Ok(ref _conn) => {}
@@ -42,10 +51,12 @@ fn get_connection(configuration: &Config) -> rusqlite::Result<Connection> {
         }
     };
     let conn = conn.expect(&SystemError::CORRUPT_BAK_DB_ERROR.to_string());
-    debug!("Empty database created");
+    debug!("empty database created");
+
     conn.execute(FRESH_DB_COMMAND, [])
         .expect("Unable to write fresh bakfile database.");
-    debug!("Clean bakfile database successfully written");
+    debug!("successfully wrote and connected to clean bakfile database");
+
     Ok(conn)
 }
 
@@ -56,10 +67,6 @@ pub struct BakDBHandler<'db> {
 
 impl<'db> BakDBHandler<'db> {
     pub fn new(configuration: Rc<Config>) -> Result<BakDBHandler<'db>, rusqlite::Error> {
-        let path = PathBuf::from(configuration.bak_database_location.clone());
-        if !path.exists() {
-            std::fs::create_dir_all(path.parent().unwrap()).expect("failed to create containing folders for bakfile database");
-        }
         let conn = get_connection(&configuration).unwrap();
         let out = BakDBHandler {
             conn,
@@ -85,7 +92,6 @@ impl<'db> BakDBHandler<'db> {
             .expect("Invalid datetime in bak DB")
             .with_timezone(&chrono::Local);
         let _restored: i8 = row.get("restored")?;
-        //let _restored: i8 = _restored_string.parse().unwrap(); //TODO
         let restored: bool = _restored != 0;
         let out = Bakfile {
             filename: filename.into(),
@@ -144,12 +150,14 @@ impl<'db> BakDBHandler<'db> {
         );
         match out {
             Err(e) => Err(e.into()),
-            _ => Ok(()),
+            _ => {
+                debug!("successfully inserted db entry");
+                Ok(())
+            },
         }
     }
 
-    // TODO clean this up when the rest of this file is anyhowified
-    pub fn get_entry_by_rowid(&self, rowid: u64) -> anyhow::Result<Bakfile> {
+    pub fn get_entry_by_rowid(&self, rowid: u64) -> Result<Bakfile> {
         let func_context = "bak::db::BakDBHandler::get_entry_by_rowid";
         match self.conn.query_row(
             "SELECT rowid, * from bakfiles WHERE rowid = (?)",
@@ -158,11 +166,9 @@ impl<'db> BakDBHandler<'db> {
         ) {
             Ok(bakfile) => Ok(bakfile),
             Err(e) => match e {
-                rusqlite::Error::QueryReturnedNoRows => Err(anyhow::Error::new(
-                    crate::util::ExecFailCode::NoBakfilesFound,
-                ))
+                rusqlite::Error::QueryReturnedNoRows => Err(crate::util::ExecFailCode::NoBakfilesFound)
                 .context(func_context),
-                _ => Err(anyhow::Error::new(e)).context(func_context),
+                _ => Err(e).context(func_context),
             },
         }
     }
