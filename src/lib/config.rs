@@ -46,7 +46,7 @@ pub(crate) fn get_default_bakfile_loc() -> Result<PathBuf, SystemError> {
 pub(crate) fn get_default_bak_db_loc() -> Result<PathBuf, SystemError> {
     match BaseDirs::new() {
         Some(base_dirs) => return Ok(base_dirs.data_local_dir().join("bak/bak.db")),
-        None => return Err(SystemError::BASE_DIRS_ERROR.into()),
+        None => return Err(SystemError::BASE_DIRS_ERROR),
     }
 }
 
