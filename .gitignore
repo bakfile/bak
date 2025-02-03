@@ -1,4 +1,8 @@
 /target
+/src/lib/target
+
+# lapce
+.lapce
 
 # VSCode
 *.code-workspace
