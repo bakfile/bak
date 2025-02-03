@@ -25,15 +25,12 @@ pub fn get_config() -> Rc<Config> {
     let config_path = Config::get_config_path().unwrap(); // Look for config file
     let out = match config_path.exists() {
         false => {
-            debug!("config file not found. generating default configuration file at {:?}", config_path);
+            // Config file not found
             let configuration: Config = Config::load(None); // Generate default config file,
             configuration.save(None).unwrap(); // and write
             Rc::new(configuration)
         }
-        true => {
-            debug!("found configuration file {:?}", config_path);
-            Rc::new(Config::load(Some(config_path.as_path())))
-        },
+        true => Rc::new(Config::load(Some(config_path.as_path()))),
     };
     trace!("instantiated config object: {:p}", out);
     out
@@ -49,7 +46,7 @@ pub(crate) fn get_default_bakfile_loc() -> Result<PathBuf, SystemError> {
 pub(crate) fn get_default_bak_db_loc() -> Result<PathBuf, SystemError> {
     match BaseDirs::new() {
         Some(base_dirs) => return Ok(base_dirs.data_local_dir().join("bak/bak.db")),
-        None => return Err(SystemError::BASE_DIRS_ERROR.into()),
+        None => return Err(SystemError::BASE_DIRS_ERROR),
     }
 }
 
