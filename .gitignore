@@ -1,5 +1,6 @@
 /target
 /src/lib/target
+/src/lib/Cargo.lock
 
 # lapce
 .lapce
