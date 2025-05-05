@@ -37,9 +37,12 @@ fn get_connection(configuration: &Config) -> rusqlite::Result<Connection> {
         path.to_str().unwrap()
     );
     
-    let parent_path = path.parent().unwrap();
-    if !parent_path.exists() {
-        std::fs::create_dir_all(path.parent().unwrap()).expect("failed to create containing folders for bakfile database");
+    let parent_path = match path.parent() {
+        Some(good_path) => good_path,
+        None => { panic!("{}", anyhow::anyhow!("invalid bak.db location specified in bak config")) }
+    };
+
+    if let Ok(()) = std::fs::create_dir_all(parent_path) {
         trace!("created containing folders for bakfile database");
     }
     
