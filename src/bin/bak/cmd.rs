@@ -1,4 +1,4 @@
-use std::{borrow::Cow, path::PathBuf};
+use std::path::PathBuf;
 
 use clap::{value_parser, Arg, ArgAction, ArgGroup, Command, Id};
 
