@@ -13,13 +13,13 @@ path = "src/bin/bak/main.rs"
 bakfile = {path = "src/lib"}
 
 anyhow = "1.0.94"
-log = "0.4.22"
-clap = { version = "4.5.4", features = ["cargo"] }
-semver = { version = "1.0.23", features = ["serde"] }
-env_logger = "0.11.5"
-human-panic = "2.0.2"
 chrono = "0.4.39"
+clap = { version = "4.5.4", features = ["cargo"] }
 comfy-table = { version = "7.1.4", default-features = false }
 console = "0.16.0"
 dialoguer = { version = "0.11.0", default-features = false, features = ["completion"] }
+env_logger = "0.11.5"
+human-panic = "2.0.2"
+log = "0.4.22"
+semver = { version = "1.0.23", features = ["serde"] }
 shellexpand = "3.1.0"

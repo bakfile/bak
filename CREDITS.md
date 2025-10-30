@@ -16,7 +16,11 @@ Cam Blomquist (https://github.com/camblomquist) - Code review and consultation
 [anyhow](https://crates.io/crates/anyhow)  
 [chrono](https://crates.io/crates/chrono)  
 [clap](https://crates.io/crates/clap)  
+[comfy-table](https://github.com/nukesor/comfy-table)  
+[console](https://github.com/console-rs/console)  
+[dialoguer](https://github.com/console-rs/dialoguer)  
 [directories](https://crates.io/crates/directories)  
+[env-logger](https://github.com/rust-cli/env_logger)
 [human-panic](https://crates.io/crates/human-panic)  
 [log](https://crates.io/crates/log)  
 [rusqlite](https://crates.io/crates/rusqlite)  
@@ -24,7 +28,7 @@ Cam Blomquist (https://github.com/camblomquist) - Code review and consultation
 [serde](https://crates.io/crates/serde)  
 [shellexpand](https://crates.io/crates/shellexpand)  
 [thiserror](https://github.com/dtolnay/thiserror)  
-[toml](https://crates.io/crates/toml)  
+[toml](https://crates.io/crates/toml)   
 
 ### Public domain
 
