@@ -6,6 +6,10 @@ use anyhow::Result;
 use crate::config;
 
 pub(crate) fn get_config_template_string(i_config: &crate::config::Config) -> Result<String> {
+    let bak_cp_exec = match &i_config.bak_cp_exec {
+            Some(val) => val.clone(),
+            None => config::DEFAULT_CP_CMD.to_string()
+        };
     return Ok(format!(
         "###
 #   This file is partially managed by bak.
@@ -59,7 +63,7 @@ bak_config_generated_by_library_version = \"{bakfile_version}\"
 ",
         bakfile_location = i_config.bakfile_location,
         bak_database_location = i_config.bak_database_location,
-        bak_cp_exec = i_config.bak_cp_exec.clone().or(Some(config::DEFAULT_CP_CMD.to_string())).expect("Unable to retrieve default cp command"),
+        bak_cp_exec = bak_cp_exec,
         bak_open_exec = i_config.bak_open_exec,
         bak_diff_exec = i_config.bak_diff_exec,
         bak_list_relpaths = i_config.bak_list_relative_paths,

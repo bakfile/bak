@@ -1,7 +1,5 @@
-#![allow(dead_code)]
-
 use log::LevelFilter;
-use std::{path, rc::Rc};
+use std::rc::Rc;
 
 extern crate clap;
 extern crate env_logger;
@@ -34,13 +32,13 @@ fn main() -> anyhow::Result<()> {
         2 => LevelFilter::Debug,
         _ => LevelFilter::Trace, // I mean, it must be high or low
     });
-    log_builder.init();
+    log_builder.init(); // that is, you can't, you know...
     log::trace!("logger initialized");
 
-    let config = bakfile::configuration::get_config();
+    let config = bakfile::configuration::get_config(); // ...tune in
     log::trace!("bak config loaded");
-    let bakdb = bakfile::bakdb::BakDBHandler::new(config.clone()).unwrap();
+    let bakdb = bakfile::bakdb::BakDBHandler::new(config.clone()).unwrap(); // but it's alright
     log::trace!("bakfile database handler initialized");
 
-    exec::bak(config.clone(), Rc::new(bakdb), matches)
+    exec::bak(config, Rc::new(bakdb), matches) // That is, I think it's not too bad
 }

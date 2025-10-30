@@ -1,11 +1,10 @@
 use std::path::PathBuf;
 
-use clap::{value_parser, Arg, ArgAction, ArgGroup, Command, Id};
+use clap::{value_parser, Arg, ArgAction, ArgGroup, Command};
 
 pub(crate) fn bak<'bak>() -> Command {
-    // let _version = crate::versioning::BAK_BIN_VERSION();
     Command::new("bak")
-    .version(clap::crate_version!()) // TODO get the versioning helper in `util` to write a &str at build time
+    .version(clap::crate_version!())
         .author("ChanceNCounter <ChanceNCounter@icloud.com>")
         .about("the bakfile manager")
         .override_usage(
@@ -71,8 +70,8 @@ fn file_arg() -> Arg {
         .value_parser(value_parser!(PathBuf))
 }
 
-fn one_bakfile_arg(id: impl Into<Id>) -> Arg {
-    Arg::new(id)
+fn one_bakfile_arg() -> Arg {
+    Arg::new("id")
         .value_name("#")
         .short('#')
         .long("id")
@@ -87,7 +86,7 @@ fn bak_up_cmd() -> Command {
         .args(bak_list_args())
         .arg(file_arg())
         .arg(
-            one_bakfile_arg("bakfile_id")
+            one_bakfile_arg()
                 .help("index of bakfile to overwrite (optional)")
                 .required(false),
         )
@@ -119,10 +118,10 @@ fn bak_diff_cmd() -> Command {
         .about("diff a file against its .bakfile")
         .args(bak_list_args())
         .arg(file_arg())
-        .arg(one_bakfile_arg("bakfile_id"))
+        .arg(one_bakfile_arg())
         .group(
             ArgGroup::new("bakfile_selection")
-                .args(["file", "bakfile_id"])
+                .args(["file", ])
                 .required(true),
         )
 }
@@ -139,7 +138,7 @@ fn bak_open_cmd() -> Command {
     .visible_alias("show")
     .about("View or edit a .bakfile in an external program\n(editing not recommended, but it's your data to mangle)")
     .args(bak_list_args())
-    .arg(one_bakfile_arg("bakfile_id")
+    .arg(one_bakfile_arg()
         .required(false))
     .arg(Arg::new("program")
          .long("in")
@@ -156,7 +155,7 @@ fn bak_where_cmd() -> Command {
         .args(bak_list_args())
         .arg(file_arg())
         .arg(
-            one_bakfile_arg("bakfile_id")
+            one_bakfile_arg()
                 .help("ID # of bakfile to overwrite (optional)")
                 .required(false),
         )
@@ -169,7 +168,7 @@ fn bak_del_cmd() -> Command {
         .args(bak_list_args())
         .arg(file_arg())
         .arg(
-            one_bakfile_arg("bakfile_id")
+            one_bakfile_arg()
                 .help("index of bakfile to delete (optional)")
                 .required(false),
         )

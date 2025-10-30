@@ -82,7 +82,7 @@ impl fmt::Display for Config {
             located at {:?}",
             self.bakfile_location,
             self.bak_database_location,
-            self.bak_cp_exec,
+            self.bak_cp_exec.clone().unwrap_or("None".into()),
             self.bak_open_exec,
             self.bak_diff_exec,
             self.bak_list_relative_paths,
@@ -134,7 +134,7 @@ impl Config {
                 bakfile_location: conf["bakfile_location"].as_str().unwrap().to_string(),
                 bak_database_location: conf["bak_database_location"].as_str().unwrap().to_string(),
                 bak_cp_exec: match conf.get("bak_cp_exec") {
-                    Some(val) => Some(val.to_string()),
+                    Some(val) => Some(val.as_str().unwrap().to_string()),
                     None => None
                 },
                 bak_open_exec: conf["bak_open_exec"].as_str().unwrap().to_string(),
