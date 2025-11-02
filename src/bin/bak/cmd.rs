@@ -14,6 +14,9 @@ pub(crate) fn bak<'bak>() -> Command {
         
         Without a command, creates a new bakfile:
             bak foo.txt
+        
+        (bak will happily manage multiple bakfiles from the same original path,
+        so don't hesitate to use it repeatedly while editing a complex file)
             
         For further information, see: bak <COMMAND> --help",
         )
@@ -41,6 +44,7 @@ pub(crate) fn bak<'bak>() -> Command {
             Arg::new("quiet")
                 .short('q')
                 .long("quiet")
+                .alias("noconfirm")
                 .action(ArgAction::SetTrue)
                 .help("suppress confirmation prompts (will NOT suppress verbosity or errors)")
                 .global(true),
@@ -49,6 +53,7 @@ pub(crate) fn bak<'bak>() -> Command {
             Arg::new("noquiet")
                 .short('Q')
                 .long("noquiet")
+                .alias("confirm")
                 .action(ArgAction::SetTrue)
                 .help("overrides 'quiet' setting in bak config")
                 .conflicts_with("quiet")
@@ -71,10 +76,8 @@ fn file_arg() -> Arg {
 }
 
 fn one_bakfile_arg() -> Arg {
-    Arg::new("id")
+    Arg::new("num")
         .value_name("#")
-        .short('#')
-        .long("id")
         .help("bakfile ID # (as displayed by `bak list`)")
         .value_parser(value_parser!(u64))
         .allow_negative_numbers(false)
@@ -87,9 +90,13 @@ fn bak_up_cmd() -> Command {
         .arg(file_arg())
         .arg(
             one_bakfile_arg()
-                .help("index of bakfile to overwrite (optional)")
                 .required(false),
         )
+        .arg(Arg::new("escalate")
+            .value_name("sudo")
+            .long("sudo")
+            .action(ArgAction::SetTrue)
+            .help("run copy operation as superuser"))
 }
 
 fn bak_down_cmd() -> Command {
@@ -98,6 +105,12 @@ fn bak_down_cmd() -> Command {
     .alias("restore")
     .args(bak_list_args())
     .arg(file_arg())
+    .arg(one_bakfile_arg().required(false))
+    .arg(Arg::new("escalate")
+        .value_name("sudo")
+        .long("sudo")
+        .action(ArgAction::SetTrue)
+        .help("run copy operation as superuser"))
     .arg(Arg::new("keepers")
         .short('k')
         .long("keep")
@@ -119,11 +132,6 @@ fn bak_diff_cmd() -> Command {
         .args(bak_list_args())
         .arg(file_arg())
         .arg(one_bakfile_arg())
-        .group(
-            ArgGroup::new("bakfile_selection")
-                .args(["file", ])
-                .required(true),
-        )
 }
 
 fn bak_list_cmd() -> Command {
@@ -138,14 +146,16 @@ fn bak_open_cmd() -> Command {
     .visible_alias("show")
     .about("View or edit a .bakfile in an external program\n(editing not recommended, but it's your data to mangle)")
     .args(bak_list_args())
-    .arg(one_bakfile_arg()
-        .required(false))
     .arg(Arg::new("program")
          .long("in")
          .required(false)
          .visible_aliases(["with", "using"])
          .help("program to open .bakfile with (bakfile will be passed as arg)\n\tdefault: $PAGER or from config"))
     .arg(file_arg().required(false))
+    .arg(
+        one_bakfile_arg()
+            .required(false),
+    )
 }
 
 fn bak_where_cmd() -> Command {
@@ -154,11 +164,8 @@ fn bak_where_cmd() -> Command {
         .about("Outputs the real path of a .bakfile. Useful for piping, and not much else.")
         .args(bak_list_args())
         .arg(file_arg())
-        .arg(
-            one_bakfile_arg()
-                .help("ID # of bakfile to overwrite (optional)")
-                .required(false),
-        )
+        .arg(one_bakfile_arg()
+                .required(false))
 }
 
 fn bak_del_cmd() -> Command {
@@ -169,7 +176,6 @@ fn bak_del_cmd() -> Command {
         .arg(file_arg())
         .arg(
             one_bakfile_arg()
-                .help("index of bakfile to delete (optional)")
                 .required(false),
         )
 }

@@ -3,6 +3,7 @@ mod config;
 mod config_template;
 mod db;
 mod enums;
+mod utils;
 mod versioning;
 
 pub use crate::bakfile_struct::Bakfile;
@@ -17,4 +18,5 @@ pub mod bakdb {
 pub mod util {
     pub use crate::versioning::*;
     pub use crate::enums::*;
+    pub use crate::utils::*;
 }

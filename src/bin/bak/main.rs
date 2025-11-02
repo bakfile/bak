@@ -20,11 +20,13 @@ fn main() -> anyhow::Result<()> {
     let matches = cli.get_matches();
     log::trace!("comamnds successfully read"); // Will only print with RUST_LOG=trace as verbosity comes next
 
+    let config = bakfile::configuration::get_config(); // ...tune in
+    log::trace!("bak config loaded");
+    
     let verbosity = matches.get_count("verbose");
-    let quiet = matches.get_flag("quiet");
     let mut log_builder = env_logger::Builder::new();
     log_builder.filter_level(match verbosity {
-        0 => match quiet {
+        0 => match crate::exec::quiet(&matches, &config) {
             true => LevelFilter::Error, // no_warn I think is in my tree
             false => LevelFilter::Warn,
         },
@@ -35,8 +37,6 @@ fn main() -> anyhow::Result<()> {
     log_builder.init(); // that is, you can't, you know...
     log::trace!("logger initialized");
 
-    let config = bakfile::configuration::get_config(); // ...tune in
-    log::trace!("bak config loaded");
     let bakdb = bakfile::bakdb::BakDBHandler::new(config.clone()).unwrap(); // but it's alright
     log::trace!("bakfile database handler initialized");
 

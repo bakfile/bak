@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 use anyhow::{Error, Result};
 use chrono::Local;
-use clap::ArgMatches;
+use clap::{Arg, ArgMatches};
 use console::Term;
 use dialoguer::Input;
 
@@ -54,7 +54,12 @@ pub(crate) fn bak(config: Rc<Config>, bakdb: Rc<BakDBHandler>, matches: ArgMatch
     }
 }
 
-fn call_command(command_string: String) -> Result<(), anyhow::Error> {
+fn call_command(mut command_string: String, config: &Config, escalate: bool) -> Result<(), anyhow::Error> {
+    if cfg!(unix) && escalate {
+    log::trace!("got sudo command: {}", &config.sudo_command);
+        command_string = config.sudo_command.replace("%c", &command_string);
+        command_string = command_string.replace("%q", "\"");
+    }
     log::debug!("executing: {}", command_string);
     let command_split: Vec<&str> = command_string.split(' ').collect();
 
@@ -66,18 +71,18 @@ fn call_command(command_string: String) -> Result<(), anyhow::Error> {
         command.get_args()
     );
     log::trace!("calling command: {:?}", command);
-    command.spawn()?.wait()?; // Anyhow will propagate any errors up the chain
+    command.spawn()?.wait()?;
     Ok(())
 }
 
-fn write_helper(config: &Config, copy_from: &PathBuf, copy_to: &PathBuf, label: &str) -> Result<()> {
+fn write_helper(config: &Config, copy_from: &PathBuf, copy_to: &PathBuf, label: &str, escalate: bool) -> Result<()> {
     
     let out: Result<(), Error> = match &config.bak_cp_exec {
         Some(val) => {
             let oops = "Fatal error in path handling in exec::write_helper";
             let command_string = val.replace("%old", copy_from.to_str().expect(oops))
                 .replace("%new", copy_to.to_str().expect(oops));
-            call_command(command_string)
+            call_command(command_string, &config, escalate)
         }
         None => {
             write_builtin(copy_from, copy_to)
@@ -90,7 +95,8 @@ fn write_helper(config: &Config, copy_from: &PathBuf, copy_to: &PathBuf, label: 
             return Err(e);
         }
     }
-    log::debug!("{}", format_args!("Successfully copied {:?} to {:?}", copy_from, copy_to));
+    log::debug!("{}", format_args!("copy operation from {:?} to {:?} returned a good exit code 
+                (this does not mean the copy was successsful)", copy_from, copy_to));
     Ok(())
 }
 
@@ -123,7 +129,8 @@ fn bak_create_exec(filename: PathBuf, config: Rc<Config>, bakdb: &BakDBHandler) 
         &config,
         &bakfile.original_path,
         &bakfile.bakfile_path,
-        "bakfile creation") {
+        "bakfile creation",
+        false) {
         Ok(()) => {
             log::debug!("Adding bakfile to database");
             bakdb.create_entry(bakfile)
@@ -132,11 +139,15 @@ fn bak_create_exec(filename: PathBuf, config: Rc<Config>, bakdb: &BakDBHandler) 
     }
 }
 
-fn bak_off_exec(submatches: &ArgMatches, _config: Rc<Config>, bakdb: &BakDBHandler) -> Result<()> {
+fn bak_off_exec(submatches: &ArgMatches, config: Rc<Config>, bakdb: &BakDBHandler) -> Result<()> {
     let filename = submatches.get_one::<PathBuf>("file").unwrap(); // Clap should enforce this arg
     let bakfiles = bakdb.get_file_entries(filename.to_owned().into())?;
     if bakfiles.is_empty() {
         return Err(anyhow::anyhow!(ExecFailReason::NoBakfilesFound))
+    }
+    if !confirm_helper(format!("Delete all bakfiles of {}?", filename.to_string_lossy()).as_str(),
+    quiet(&submatches, &config))? {
+        return Ok(())
     }
     log::debug!("Deleting {:#} bakfiles of {:?}", bakfiles.len(), filename);
     for bakfile in bakfiles {
@@ -149,17 +160,21 @@ fn bak_off_exec(submatches: &ArgMatches, _config: Rc<Config>, bakdb: &BakDBHandl
 }
 
 fn bak_down_exec(submatches: &ArgMatches, config: Rc<Config>, bakdb: &BakDBHandler) -> Result<()> {
-    fn bak_down(config: &Config, bakfile: &Bakfile) -> Result<()> {
+    fn bak_down(submatches: &ArgMatches, config: &Config, bakfile: &Bakfile) -> Result<()> {
+    if !confirm_helper(format!("Overwrite {} and restore from bakfile?", bakfile.original_path.to_string_lossy()).as_str(),
+                quiet(&submatches, &config))?  {
+        return Ok(())
+    }
         log::debug!(
             "overwriting {:?} to restore from {:?}",
             bakfile.original_path,
             bakfile.bakfile_path
         );
-        write_helper(&config,&bakfile.bakfile_path, &bakfile.original_path, "bak down")
+        write_helper(&config,&bakfile.bakfile_path, &bakfile.original_path, "bak down", submatches.get_flag("escalate"))
     }
 
-    let some_bakfile = disambiguate_and_execute(submatches, &config, &bakdb, DisambiguatedExecOperation::Return, false)?;
-    bak_down(&config, &some_bakfile.unwrap()) // If this Option is None, there's a bug
+    let some_bakfile = execute(submatches, &config, &bakdb, DisambiguatedExecOperation::Return, false)?;
+    bak_down(&submatches, &config, &some_bakfile.unwrap()) // If this Option is None, there's a bug
 }
 
 fn bak_up_exec(submatches: &ArgMatches, config: Rc<Config>, bakdb: &BakDBHandler) -> Result<()> {
@@ -172,17 +187,21 @@ fn bak_up_exec(submatches: &ArgMatches, config: Rc<Config>, bakdb: &BakDBHandler
             Ok(()) // This should be unreachable, as the file arg is required or else clap just prints bak --help
         }
     }
-    let _exec = disambiguate_and_execute(submatches, &config, &bakdb, DisambiguatedExecOperation::Return, false);
+    let _exec = execute(submatches, &config, &bakdb, DisambiguatedExecOperation::Return, false);
     return match _exec {
         // This apparent spaghetti accounts for a nigh-unreachable codepath as well as the intended path, either of which would result from
         // a 'no .bakfiles found' situation
         Ok(Some(bakfile)) => {
+            if !confirm_helper(format!("Overwrite bakfile with current version of {}?", bakfile.original_path.to_string_lossy()).as_str(),
+                quiet(&submatches, &config))? {
+                return Ok(())
+            }
             log::info!(
                 "Overwriting .bakfile {} for {}",
                 bakfile.bakfile_path.to_string_lossy(),
                 bakfile.original_path.to_string_lossy()
             );
-            write_helper(&config, &bakfile.original_path, &bakfile.bakfile_path, "bak up")
+            write_helper(&config, &bakfile.original_path, &bakfile.bakfile_path, "bak up", submatches.get_flag("escalate"))
         }
         Ok(None) => {
             no_bakfiles_found_fallback(submatches, config, &bakdb)
@@ -195,12 +214,16 @@ fn bak_up_exec(submatches: &ArgMatches, config: Rc<Config>, bakdb: &BakDBHandler
 }
 
 fn bak_del_exec(submatches: &ArgMatches, config: Rc<Config>, bakdb: &BakDBHandler) -> Result<()> {
-    let bakfile = disambiguate_and_execute(submatches, &config, &bakdb, DisambiguatedExecOperation::Return, false)?.unwrap();
+    let bakfile = execute(submatches, &config, &bakdb, DisambiguatedExecOperation::Return, false)?.unwrap();
         log::debug!(
             "bak del got bakfile {:?} of {:?}",
             bakfile.bakfile_path,
             bakfile.original_path
         );
+        if !confirm_helper(format!("Delete bakfile of {}?", bakfile.original_path.to_string_lossy()).as_str(),
+        quiet(&submatches, &config))? {
+            return Ok(())
+        }
         log::debug!("deleting file: {:?}", bakfile.bakfile_path);
         remove_file(bakfile.clone().bakfile_path)?;
         log::debug!("removing .bakfile from database");
@@ -208,23 +231,17 @@ fn bak_del_exec(submatches: &ArgMatches, config: Rc<Config>, bakdb: &BakDBHandle
 }
 
 fn bak_open_exec(submatches: &ArgMatches, config: Rc<Config>, bakdb: &BakDBHandler) -> Result<()> {
-    disambiguate_and_execute(submatches, &config, &bakdb, DisambiguatedExecOperation::Show, false)?;
+    execute(submatches, &config, &bakdb, DisambiguatedExecOperation::Show, false)?;
     Ok(())
 }
 
 fn bak_diff_exec(submatches: &ArgMatches, config: Rc<Config>, bakdb: &BakDBHandler) -> Result<()> {
-    if let Some(id) = submatches.get_one("id") {
-        let bakfile = bakdb.get_entry_by_rowid(*id)?;
-        just_execute(submatches, &config, bakfile, DisambiguatedExecOperation::Diff)?;
-    }
-    else {
-        disambiguate_and_execute(submatches, &config, &bakdb, DisambiguatedExecOperation::Diff, false)?;
-    }
+    execute(submatches, &config, &bakdb, DisambiguatedExecOperation::Diff, false)?;
     Ok(())
 }
 
 fn bak_where_exec(submatches: &ArgMatches, config: Rc<Config>, bakdb: &BakDBHandler) -> Result<()> {
-    let bakfile = disambiguate_and_execute(submatches, &config, &bakdb, DisambiguatedExecOperation::Return, false)?.unwrap();
+    let bakfile = execute(submatches, &config, &bakdb, DisambiguatedExecOperation::Return, false)?.unwrap();
     println!("{}", bakfile.bakfile_path.to_string_lossy());
     Ok(())
 }
@@ -262,6 +279,22 @@ impl DisambiguatedExecOperation {
             DisambiguatedExecOperation::Show => "display",
             DisambiguatedExecOperation::Return => "return bakfile",
         } //TODO bak up, down, etc
+    }
+}
+
+pub(crate) fn quiet(submatches: &ArgMatches, config: &Config) -> bool {
+    return submatches.get_flag("quiet") || (config.quiet && !submatches.get_flag("no_quiet"));
+}
+
+fn confirm_helper(prompt: &str, quiet: bool) -> Result<bool> {
+    if quiet { return Ok(true); }
+    loop {
+        let input = Input::<String>::new();
+        match input.with_prompt(prompt.to_owned() + "\n" + "(Y/N)").interact_text().unwrap().to_lowercase().as_str() {
+            "y" => return Ok(true),
+            "n" => return Ok(false),
+            _ => ()
+        }
     }
 }
 
@@ -305,7 +338,7 @@ fn _bak_list_parameter_helper(
         true => submatches.get_flag("colors"),
         false => config.bak_list_colors
     };
-    let diff = submatches.get_flag("compare");
+    let diff = submatches.get_flag("compare") || (config.bak_list_diff && !submatches.get_flag("nocompare"));
     let bakfiles = match &filename {
         Some(file) => bakdb.get_file_entries(file.clone()).unwrap(), //TODO failures
         None => bakdb.get_all_entries().unwrap(),
@@ -313,7 +346,24 @@ fn _bak_list_parameter_helper(
     return (filename, diff, colors, bakfiles);
 }
 
-pub(crate) fn disambiguate_and_execute(
+fn execute(
+    submatches: &ArgMatches,
+    config: &Config,
+    bakdb: &BakDBHandler,
+    operation: DisambiguatedExecOperation,
+    stderr: bool) -> Result<Option<Bakfile>> {
+        log::trace!("executing: {:?}", operation);
+        if let Some(id) = submatches.get_one("num") {
+            log::trace!("getting bakfile");
+            let bakfile = bakdb.get_entry_by_rowid(*id)?;
+            log::trace!("bakfile found: {:?}", bakfile);
+            just_execute(submatches, &config, bakfile, operation)
+        }
+        else {
+            return disambiguate_and_execute(submatches, &config, &bakdb, operation, stderr);
+        }
+    }
+fn disambiguate_and_execute(
     submatches: &ArgMatches,
     config: &Config,
     bakdb: &BakDBHandler,
@@ -341,7 +391,9 @@ pub(crate) fn disambiguate_and_execute(
                                     config,
                                     submatches,
                                     Some(operation),
-                                    stderr) {
+                                    stderr,
+                                    diff,
+                                    colors) {
             Ok(disambiguation_result) => disambiguation_result,
             Err(e) => return Err(e),
         },
@@ -355,7 +407,7 @@ pub(crate) fn disambiguate_and_execute(
         DisambiguatedExecOperation::Return => {
             return Ok(Some(bakfile));
         }
-        _ => match run_disambiguate_op(&operation, bakfile, &config) {
+        _ => match run_disambiguate_op(&operation, bakfile, &submatches, &config) {
             Ok(_) => Ok(None),
             Err(e) => {
                 let err = e.downcast()?;
@@ -374,15 +426,15 @@ fn disambiguate(
     submatches: &ArgMatches,
     operation: Option<DisambiguatedExecOperation>,
     stderr: bool,
+    diff: bool,
+    colors: bool
 ) -> Result<(Bakfile, DisambiguatedExecOperation)> {
-    let diff = submatches.get_flag("compare");
-    let colors = submatches.get_flag("colors");
-    crate::display::display_bak_list(
+    display_bak_list(
         &bakfiles,
         &config,
         diff,
         colors,
-        stderr,
+        stderr
     )?;
 
     let mut disambiguate_operation = operation.unwrap_or_default();
@@ -458,6 +510,7 @@ fn disambiguate(
                             // run_disambiguate_op() will build and call the shell command
                             &disambiguate_operation,
                             bakfile.clone(),
+                            &submatches,
                             &config,
                         )?;
                         // We have finished the alternative operation. Go back to the first one.
@@ -511,18 +564,24 @@ fn disambiguate(
 }
 
 fn just_execute(
-    _submatches: &ArgMatches,
+    submatches: &ArgMatches,
     config: &Config,
     bakfile: Bakfile,
     operation: DisambiguatedExecOperation,
-    ) -> anyhow::Result<()> {
-    run_disambiguate_op(&operation, bakfile, config)
+    ) -> Result<Option<Bakfile>> {
+    if operation == DisambiguatedExecOperation::Return {
+        return Ok(Some(bakfile))
+    }
+    run_disambiguate_op(&operation, bakfile.clone(), submatches, config)?;
+    Ok(None)
+
 }
 
 #[allow(unreachable_patterns)]
 fn run_disambiguate_op(
     operation: &DisambiguatedExecOperation,
     bakfile: Bakfile,
+    submatches: &ArgMatches,
     config: &Config) -> Result<()> {
     let mut command_string: String;
     match operation {
@@ -530,7 +589,10 @@ fn run_disambiguate_op(
             command_string = config.bak_diff_exec.clone();
         }
         DisambiguatedExecOperation::Show => {
-            command_string = config.bak_open_exec.clone();
+            command_string = match submatches.get_one::<String>("program") {
+                Some(program)=> program.to_owned() + &" %f".to_string(),
+                None => config.bak_open_exec.clone()
+            }
         }
         DisambiguatedExecOperation::Return => return Err(ExecFailReason::Done.into()),
         // unreachable?
@@ -546,5 +608,5 @@ fn run_disambiguate_op(
                         .replace("%f", bakfile.bakfile_path.to_str().unwrap()) // for Show operation
                         .replace("%new", bakfile.bakfile_path.to_str().unwrap()) // for Diff operation
                         .replace("%old", bakfile.original_path.to_str().unwrap());
-    call_command(command_string)
+    call_command(command_string, &config, submatches.get_flag("escalate"))
 }
