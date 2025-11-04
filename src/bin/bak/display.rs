@@ -1,12 +1,9 @@
-use std::fs::File;
-
 use anyhow::Result;
 use bakfile::util::sha256_files;
 use comfy_table::modifiers::*;
 use comfy_table::presets::UTF8_FULL;
-// use comfy_table::Color::{Green, Red, Reset as DefaultColor, Yellow};
 use comfy_table::{Cell, Row, Table};
-use console::Term;
+use console::{Style, Term};
 
 use log::trace;
 
@@ -39,7 +36,7 @@ pub(crate) fn display_bak_list(
         .load_preset(UTF8_FULL)
         .apply_modifier(UTF8_ROUND_CORNERS)
         .apply_modifier(UTF8_SOLID_INNER_BORDERS);
-    let header: Vec<&str> = vec!["#", "Original File", ".bakfile  Created", ".bakfile Modified"];
+    let header: Vec<&str> = vec!["#", "Original File", ".bakfile Created", ".bakfile Updated"];
     table.set_header(header);
 
     let mut rows = vec![];

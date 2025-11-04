@@ -4,6 +4,7 @@ authors = ["ChanceNCounter <ChanceNCounter@icloud.com>"]
 repository = "https://github.com/bakfile/bak"
 version = "0.3.0" # tracks version of `bak` binary, not underlying `bakfile` library
 edition = "2021"
+cargo-flags = "-Zon-broken-pipe=kill"
 
 [[bin]]
 name = "bak"

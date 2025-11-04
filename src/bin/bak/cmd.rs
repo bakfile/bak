@@ -17,6 +17,10 @@ pub(crate) fn bak<'bak>() -> Command {
         
         (bak will happily manage multiple bakfiles from the same original path,
         so don't hesitate to use it repeatedly while editing a complex file)
+
+        Note: please don't sudo bak! This will create a separate config and
+        bakfile directory for root. Instead, if you need to restore a protected
+        file, see: bak down --help, and the relevant section of bak.conf
             
         For further information, see: bak <COMMAND> --help",
         )

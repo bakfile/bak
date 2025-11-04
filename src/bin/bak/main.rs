@@ -34,11 +34,11 @@ fn main() -> anyhow::Result<()> {
         2 => LevelFilter::Debug,
         _ => LevelFilter::Trace, // I mean, it must be high or low
     });
+ 
     log_builder.init(); // that is, you can't, you know...
-    log::trace!("logger initialized");
-
-    let bakdb = bakfile::bakdb::BakDBHandler::new(config.clone()).unwrap(); // but it's alright
-    log::trace!("bakfile database handler initialized");
-
-    exec::bak(config, Rc::new(bakdb), matches) // That is, I think it's not too bad
-}
+    log::trace!("logger initialized"); // tune in
+    
+    let bakdb = bakfile::bakdb::BakDBHandler::new(config.clone()).unwrap();
+    log::trace!("bakfile database handler initialized"); // but it's alright
+    
+    exec::bak(config, Rc::new(bakdb), matches)} // That is, I think it's not too bad

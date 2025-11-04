@@ -5,11 +5,10 @@ use std::rc::Rc;
 
 use anyhow::{Error, Result};
 use chrono::Local;
-use clap::{Arg, ArgMatches};
-use console::Term;
+use clap::ArgMatches;
 use dialoguer::Input;
 
-use bakfile::bakdb::{BakDBHandler};
+use bakfile::bakdb::BakDBHandler;
 use bakfile::Bakfile;
 use bakfile::configuration::Config;
 
@@ -113,8 +112,8 @@ fn bak_list_exec(submatches: &ArgMatches, config: Rc<Config>, bakdb: &BakDBHandl
 }
 
 fn bak_config_exec(_submatches: &ArgMatches, config: Rc<Config>, _bakdb: &BakDBHandler) -> Result<()> {
-    let term = Term::stdout();
-    Ok(term.write_line(&config.to_string().replace("\"", ""))?)
+    println!("{}", &config.to_string().replace("\"", ""));
+    Ok(())
 }
 
 fn bak_create_exec(filename: PathBuf, config: Rc<Config>, bakdb: &BakDBHandler) -> Result<()> {
@@ -241,8 +240,8 @@ fn bak_diff_exec(submatches: &ArgMatches, config: Rc<Config>, bakdb: &BakDBHandl
 }
 
 fn bak_where_exec(submatches: &ArgMatches, config: Rc<Config>, bakdb: &BakDBHandler) -> Result<()> {
-    let bakfile = execute(submatches, &config, &bakdb, DisambiguatedExecOperation::Return, false)?.unwrap();
-    println!("{}", bakfile.bakfile_path.to_string_lossy());
+    let bakfile = execute(submatches, &config, &bakdb, DisambiguatedExecOperation::Return, true)?.unwrap();
+    println!("{}", bakfile.bakfile_path.to_str().unwrap());
     Ok(())
 }
 
