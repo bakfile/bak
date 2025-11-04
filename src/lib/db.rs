@@ -14,6 +14,7 @@ use crate::util::SystemError;
 #[allow(nonstandard_style)]
 const FRESH_DB_COMMAND: &'static str =
     "CREATE TABLE if not exists bakfiles(
+        bakid INTEGER PRIMARY KEY AUTOINCREMENT,
         original_file,
         original_abspath,
         bakfile,

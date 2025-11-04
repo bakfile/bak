@@ -3,7 +3,7 @@ use bakfile::util::sha256_files;
 use comfy_table::modifiers::*;
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::{Cell, Row, Table};
-use console::{Style, Term};
+use console::Term;
 
 use log::trace;
 
@@ -43,7 +43,6 @@ pub(crate) fn display_bak_list(
     for bakfile in bakfiles {
         // These should already be ordered by rowid from the database
         let mut row = Row::new();
-        //TODO construct cell contents as ("{} {#}", diff_indicator, index)
         let rowid = bakfile.rowid.unwrap();
         let fstring = match diff {
             false => { format!("{:#}", rowid) },

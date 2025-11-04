@@ -1,4 +1,5 @@
 use std::fs::{copy, remove_file};
+use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
 use std::rc::Rc;
@@ -108,6 +109,10 @@ fn write_builtin(copy_from: &PathBuf, copy_to: &PathBuf) -> Result<()> {
 
 fn bak_list_exec(submatches: &ArgMatches, config: Rc<Config>, bakdb: &BakDBHandler) -> Result<()> {
     let (_filename, diff, colors, bakfiles) = _bak_list_parameter_helper(submatches, &config, &bakdb);
+    if bakfiles.is_empty() {
+        no_bakfiles_found_helper(submatches, true, anyhow::anyhow!(ExecFailReason::NoBakfilesFound))?;
+        return Ok(());
+    }
     display_bak_list(&bakfiles, &config, diff, colors, false)
 }
 
@@ -315,7 +320,15 @@ fn no_bakfiles_found_helper(submatches: &ArgMatches, print: bool, e: Error) -> R
         Ok(ExecFailReason::NoBakfilesFound) => { 
             let file: Option<&PathBuf> = submatches.get_one("file");
             if print {
-                println!("No .bakfiles found for {}", file.as_deref().unwrap().to_string_lossy()); // condition where !file.is_some() is unreachable
+                let mut term = console::Term::stderr();
+                term.write("No .bakfiles found".as_bytes())?; 
+                if file.is_some() {
+                    term.write(format!(" for {}\n",
+                    file.as_deref().unwrap().to_str().unwrap()).as_bytes())?; // condition where !file.is_some() is unreachable
+                }
+                else {
+                    term.write("\n".as_bytes())?;
+                }
             }
             Ok(())
         },
@@ -477,7 +490,7 @@ fn disambiguate(
         match input.parse::<u64>() {
             Ok(n) => {
                 if n <= 0 {
-                    println!("Invalid input.");
+                    console::Term::stderr().write_line("Invalid input.")?;
                     continue;
                 }
                 // try for bakfile by index
@@ -496,7 +509,7 @@ fn disambiguate(
 
                 match selection {
                     None => {
-                        println!("Invalid selection.");
+                        console::Term::stderr().write_line("Invalid selection.")?;
                         continue;
                     }
                     Some(bakfile) => {
