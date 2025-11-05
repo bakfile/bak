@@ -27,6 +27,6 @@ pub fn sha256_files(file1: PathBuf, file2: PathBuf) -> Result<bool> {
     #[cfg(target_family = "unix")]
     let out = hash1[0] == hash2[0];
     #[cfg(target_family = "windows")]
-    let out = hash1.iter().eq(hash2);
+    let out = hash1.iter().eq(&hash2);
     return Ok(out)
 }

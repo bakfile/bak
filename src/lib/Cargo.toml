@@ -14,7 +14,7 @@ chrono = "0.4.39"
 clap = { version = "4.5.23", features = ["cargo"] }
 directories = "5.0.1"
 log = "0.4.22"
-rusqlite = "0.31.0"
+rusqlite = {version = "0.31.0", features = ["bundled"] }
 semver = { version = "1.0.23", features = ["serde"] }
 serde = { version = "1.0.215", features = ["derive"] }
 shellexpand = "3.1.0"

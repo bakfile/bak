@@ -243,21 +243,54 @@ impl Config {
                 return Err(SystemError::BASE_DIRS_ERROR.into());
             }
         };
+
         trace!("Getting config path...");
         let config_path = basedirs.config_dir().join(Path::new("bak.conf"));
-        trace!("Got config path: {}", config_path.to_string_lossy());
         let config_path_str = config_path.to_str().unwrap();
+        trace!("Got config path: {}", config_path_str);
+        
         if cfg!(unix) && config_path_str.contains("root") {
+            /*  we might be root, in which case we'll use root's config and bakfiles, but we probably aren't root.
+                we're probably elevated, so the user can restore a privileged file, and we want to use the logged in
+                user's configuratoin, not to create a new one for root */
             trace!("Root detected. Checking for sudolike conditions...");
             let _actual_user = String::from_utf8(Command::new("logname").output()?.stdout)?;
             let actual_user = _actual_user.strip_suffix('\n').unwrap();
             if actual_user != "root" {
                 trace!("sudo detected. Falling back on actual user");
+                
                 let pid = std::process::id();
-                let _process_name_bytes = Command::new("ps").args(["-p", &pid.to_string(), "-o", "comm="]).output()?.stdout;
-                let mut process_name = String::from_utf8(_process_name_bytes)?;
-                process_name = process_name.strip_suffix('\n').unwrap().to_string();
-                let run_command: String = process_name + " get-config";
+                trace!("got pid: {}", pid);
+                
+                /*  readlink -f /proc/[PID]/exe should give us the abspath to the command that created this process.
+                    this is our preferred way of locating ourselves, because, for example, the main bak binary is
+                    called `bak`, but it isn't necessarily located in the PATH as `bak` (like during dev, when it's
+                    probably at $PWD/target/debug/bak) */
+                trace!("trying to read process path via readlink");
+                let _process_exe_bytes = Command::new("readlink").args(["-f", &format!("/proc/{}/exe", pid)]).output()?.stdout;
+
+                let mut process_command: String = if !_process_exe_bytes.is_empty() {
+                    let _cmd = String::from_utf8(_process_exe_bytes)?;
+                    trace!("got process path: {}", _cmd);
+                    _cmd
+                } else {
+                    /*  on some unixes, such as AIX, ^ that won't work. we have to fall back on the name of the process,
+                        and accept that this will only work on installed instances of our program. to get our name,
+                        ps -p [PID] -o comm=
+                        which should work on all unix-like systems, for reasonable values of "all" */
+                    trace!("unsuccessful. we must be on an uncommon unix. getting process name");
+                    let _process_name_bytes = Command::new("ps").args(["-p", &pid.to_string(), "-o", "comm="]).output()?.stdout;
+                    String::from_utf8(_process_name_bytes)?
+                };
+                // since this value came from a spawned process' stdout, it's got a trailing newline
+                process_command = process_command.strip_suffix('\n').unwrap().to_string();
+                /*  this is the only limitation `bakfile` places on implementations:
+                    the `get-command` subcommand MUST print the absolute path of the current user's config file,
+                    enabling this routine to exist */
+
+                // runuser -l [USER] -c [OUR_PROGRAM] get-command
+                let run_command: String = process_command + " get-config";
+                trace!("attempting to retrieve user's bak config via: {}", &run_command);
                 let mut actual_config_cmd = Command::new("runuser");
                 actual_config_cmd.args(["-l",
                                         &actual_user,
@@ -269,9 +302,6 @@ impl Config {
                 let mut actual_config_path = str::from_utf8(&_actual_config_path)?;
                 actual_config_path = actual_config_path.strip_suffix("\n").unwrap();
                 return Ok(PathBuf::from(actual_config_path));
-                // return Err(anyhow::anyhow!(format!("{:#?}", actual_config_cmd)));
-                // return Err(anyhow::anyhow!(String::from_utf8(actual_config_path)?));
-                // return Err(anyhow::anyhow!(run_command))
             }
         }
         Ok(config_path)

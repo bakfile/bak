@@ -254,7 +254,6 @@ fn bak_get_config_location_exec(_submatches: &ArgMatches, _config: Rc<Config>, _
 enum ExecFailReason {
     Cancel,
     Done,
-    BadInput,
     NoBakfilesFound,
     #[default]
     UnspecifiedError,
