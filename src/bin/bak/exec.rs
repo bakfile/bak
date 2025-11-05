@@ -279,8 +279,8 @@ pub(crate) enum DisambiguatedExecOperation {
 impl DisambiguatedExecOperation {
     fn as_str(&self) -> &'static str {
         match self {
-            DisambiguatedExecOperation::Diff => "diff",
-            DisambiguatedExecOperation::Show => "display",
+            DisambiguatedExecOperation::Diff => "to diff",
+            DisambiguatedExecOperation::Show => "to display",
             DisambiguatedExecOperation::Return => "",
         } //TODO bak up, down, etc
     }
@@ -426,7 +426,7 @@ fn disambiguate_and_execute(
         DisambiguatedExecOperation::Return => {
             return Ok(Some(bakfile));
         }
-        _ => match run_disambiguate_op(&operation, bakfile, &submatches, &config) {
+        _ => match run_disambiguate_op(&operation, bakfile, &submatches, &config, true) {
             Ok(_) => Ok(None),
             Err(e) => {
                 let err = e.downcast()?;
@@ -475,7 +475,7 @@ fn disambiguate(
         }
         options += ", [C]ancel";
         format!(
-            "Select a bakfile to {} by entering a number, or\n{}",
+            "Select a bakfile {} by entering a number, or\n{}",
             operation.as_str(),
             options.as_str()
         )
@@ -494,16 +494,14 @@ fn disambiguate(
     loop {
         let _input = get_input(&prompt);
         let input = _input.as_str();
+        log::trace!("Got input: {}", input);
         match input.parse::<u64>() {
             Ok(n) => {
-                if n <= 0 {
-                    console::Term::stderr().write_line("Invalid input.")?;
-                    continue;
-                }
-
+                log::trace!("Got integer: {}", n);
                 let mut selection: Option<&Bakfile> = None;
                 for bakfile in bakfiles.iter() {
                     if bakfile.rowid == Some(n) {
+                        log::trace!("Found bakfile: {}", &bakfile.bakfile_path.to_string_lossy());
                         selection = Some(bakfile);
                     }
                 }
@@ -516,8 +514,10 @@ fn disambiguate(
                     Some(bakfile) => {
                         if disambiguate_operation == original_operation {
                             // This is what the user originally called. Return the selected bakfile upstairs to execute the operation.
+                            log::trace!("Disambiguation complete. Returning to designated operation");
                             return Ok((bakfile.clone(), disambiguate_operation));
                         }
+                        log::trace!("Attempting secondary operation: {:?}", disambiguate_operation);
                         // The user has selected an alternative operation
                         run_disambiguate_op(
                             // run_disambiguate_op() will build and call the shell command
@@ -525,6 +525,7 @@ fn disambiguate(
                             bakfile.clone(),
                             &submatches,
                             &config,
+                            false
                         )?;
                         // We have finished the alternative operation. Go back to the first one.
                         disambiguate_operation = original_operation.clone();
@@ -567,7 +568,9 @@ fn disambiguate(
                     }
                     _ => {
                         log::debug!("User input not recognized");
-                        return Err(ExecFailReason::BadInput.into());
+                        // return Err(ExecFailReason::BadInput.into());
+                        console::Term::stderr().write_line("Invalid selection.")?;
+                        continue;
                     }
                 }
                 prompt = gen_prompt(&disambiguate_operation);
@@ -585,7 +588,7 @@ fn just_execute(
     if operation == DisambiguatedExecOperation::Return {
         return Ok(Some(bakfile))
     }
-    run_disambiguate_op(&operation, bakfile.clone(), submatches, config)?;
+    run_disambiguate_op(&operation, bakfile.clone(), submatches, config,true)?;
     Ok(None)
 
 }
@@ -595,17 +598,26 @@ fn run_disambiguate_op(
     operation: &DisambiguatedExecOperation,
     bakfile: Bakfile,
     submatches: &ArgMatches,
-    config: &Config) -> Result<()> {
+    config: &Config,
+    is_original_subcommand: bool) -> Result<()> {
     let mut command_string: String;
     match operation {
         DisambiguatedExecOperation::Diff => {
+            if !is_original_subcommand {
+                log::warn!(
+                "Running inline diff. Your diff utility might not produce any output if the files are identical.");
+            }
             command_string = config.bak_diff_exec.clone();
         }
         DisambiguatedExecOperation::Show => {
-            command_string = match submatches.get_one::<String>("program") {
-                Some(program)=> program.to_owned() + &" %f".to_string(),
-                None => config.bak_open_exec.clone()
-            }
+            command_string = if is_original_subcommand {
+                match submatches.get_one::<String>("program") {
+                    Some(program)=> program.to_owned() + &" %f".to_string(),
+                    None => config.bak_open_exec.clone()
+                }
+            } else {
+                config.bak_open_exec.clone()
+            };
         }
         DisambiguatedExecOperation::Return => return Err(ExecFailReason::Done.into()),
         // unreachable?
