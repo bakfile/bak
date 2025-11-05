@@ -40,11 +40,12 @@ pub(crate) fn bak(config: Rc<Config>, bakdb: Rc<BakDBHandler>, matches: ArgMatch
                 "del" => &bak_del_exec,
                 "off" => &bak_off_exec,
                 "config" => &bak_config_exec,
+                "get-config" => &bak_get_config_location_exec,
                 _ => return Ok(()),
             };
             let result = function(&submatches, config, &bakdb);
             if result.is_err() {
-                return no_bakfiles_found_helper(
+                return check_for_interruption(
                     submatches,
                     true,
                     result.err().unwrap())
@@ -54,12 +55,7 @@ pub(crate) fn bak(config: Rc<Config>, bakdb: Rc<BakDBHandler>, matches: ArgMatch
     }
 }
 
-fn call_command(mut command_string: String, config: &Config, escalate: bool) -> Result<(), anyhow::Error> {
-    if cfg!(unix) && escalate {
-    log::trace!("got sudo command: {}", &config.sudo_command);
-        command_string = config.sudo_command.replace("%c", &command_string);
-        command_string = command_string.replace("%q", "\"");
-    }
+fn call_command(command_string: String) -> Result<(), anyhow::Error> {
     log::debug!("executing: {}", command_string);
     let command_split: Vec<&str> = command_string.split(' ').collect();
 
@@ -75,14 +71,14 @@ fn call_command(mut command_string: String, config: &Config, escalate: bool) -> 
     Ok(())
 }
 
-fn write_helper(config: &Config, copy_from: &PathBuf, copy_to: &PathBuf, label: &str, escalate: bool) -> Result<()> {
+fn write_helper(config: &Config, copy_from: &PathBuf, copy_to: &PathBuf, label: &str) -> Result<()> {
     
     let out: Result<(), Error> = match &config.bak_cp_exec {
         Some(val) => {
             let oops = "Fatal error in path handling in exec::write_helper";
             let command_string = val.replace("%old", copy_from.to_str().expect(oops))
                 .replace("%new", copy_to.to_str().expect(oops));
-            call_command(command_string, &config, escalate)
+            call_command(command_string)
         }
         None => {
             write_builtin(copy_from, copy_to)
@@ -110,7 +106,7 @@ fn write_builtin(copy_from: &PathBuf, copy_to: &PathBuf) -> Result<()> {
 fn bak_list_exec(submatches: &ArgMatches, config: Rc<Config>, bakdb: &BakDBHandler) -> Result<()> {
     let (_filename, diff, colors, bakfiles) = _bak_list_parameter_helper(submatches, &config, &bakdb);
     if bakfiles.is_empty() {
-        no_bakfiles_found_helper(submatches, true, anyhow::anyhow!(ExecFailReason::NoBakfilesFound))?;
+        check_for_interruption(submatches, true, anyhow::anyhow!(ExecFailReason::NoBakfilesFound))?;
         return Ok(());
     }
     display_bak_list(&bakfiles, &config, diff, colors, false)
@@ -133,8 +129,7 @@ fn bak_create_exec(filename: PathBuf, config: Rc<Config>, bakdb: &BakDBHandler) 
         &config,
         &bakfile.original_path,
         &bakfile.bakfile_path,
-        "bakfile creation",
-        false) {
+        "bakfile creation") {
         Ok(()) => {
             log::debug!("Adding bakfile to database");
             bakdb.create_entry(bakfile)
@@ -174,7 +169,7 @@ fn bak_down_exec(submatches: &ArgMatches, config: Rc<Config>, bakdb: &BakDBHandl
             bakfile.original_path,
             bakfile.bakfile_path
         );
-        write_helper(&config,&bakfile.bakfile_path, &bakfile.original_path, "bak down", submatches.get_flag("escalate"))
+        write_helper(&config,&bakfile.bakfile_path, &bakfile.original_path, "bak down")
     }
 
     let some_bakfile = execute(submatches, &config, &bakdb, DisambiguatedExecOperation::Return, false)?;
@@ -205,13 +200,13 @@ fn bak_up_exec(submatches: &ArgMatches, config: Rc<Config>, bakdb: &BakDBHandler
                 bakfile.bakfile_path.to_string_lossy(),
                 bakfile.original_path.to_string_lossy()
             );
-            write_helper(&config, &bakfile.original_path, &bakfile.bakfile_path, "bak up", submatches.get_flag("escalate"))
+            write_helper(&config, &bakfile.original_path, &bakfile.bakfile_path, "bak up")
         }
         Ok(None) => {
             no_bakfiles_found_fallback(submatches, config, &bakdb)
         }
         Err(e) => {
-            no_bakfiles_found_helper(&submatches, false, e)?; // If the error isn't NoBakfilesFound, ? will propagate it
+            check_for_interruption(&submatches, false, e)?; // If the error isn't NoBakfilesFound, ? will propagate it
             no_bakfiles_found_fallback(submatches, config, &bakdb) // If it was, fall back on create
         }
     }
@@ -250,6 +245,11 @@ fn bak_where_exec(submatches: &ArgMatches, config: Rc<Config>, bakdb: &BakDBHand
     Ok(())
 }
 
+fn bak_get_config_location_exec(_submatches: &ArgMatches, _config: Rc<Config>, _bakdb: &BakDBHandler) -> Result<()> {
+    println!("{}", Config::get_config_path()?.to_string_lossy());
+    Ok(())
+}
+
 #[derive(Debug, Default)]
 enum ExecFailReason {
     Cancel,
@@ -281,7 +281,7 @@ impl DisambiguatedExecOperation {
         match self {
             DisambiguatedExecOperation::Diff => "diff",
             DisambiguatedExecOperation::Show => "display",
-            DisambiguatedExecOperation::Return => "return bakfile",
+            DisambiguatedExecOperation::Return => "",
         } //TODO bak up, down, etc
     }
 }
@@ -314,7 +314,7 @@ fn bakfile_dir_helper(config: &Config) -> Result<PathBuf> {
     }
 }
 
-fn no_bakfiles_found_helper(submatches: &ArgMatches, print: bool, e: Error) -> Result<()> {
+fn check_for_interruption(submatches: &ArgMatches, print: bool, e: Error) -> Result<()> {
     let _e = e.downcast::<ExecFailReason>();
     match _e {
         Ok(ExecFailReason::NoBakfilesFound) => { 
@@ -324,11 +324,18 @@ fn no_bakfiles_found_helper(submatches: &ArgMatches, print: bool, e: Error) -> R
                 term.write("No .bakfiles found".as_bytes())?; 
                 if file.is_some() {
                     term.write(format!(" for {}\n",
-                    file.as_deref().unwrap().to_str().unwrap()).as_bytes())?; // condition where !file.is_some() is unreachable
+                    file.as_deref().unwrap().to_str().unwrap()).as_bytes())?; // wow, this is ugly
                 }
                 else {
                     term.write("\n".as_bytes())?;
                 }
+            }
+            Ok(())
+        }
+        Ok(ExecFailReason::Cancel) => {
+            if print {
+                let term = console::Term::stderr();
+                term.write_line("Operation cancelled")?;
             }
             Ok(())
         },
@@ -493,12 +500,6 @@ fn disambiguate(
                     console::Term::stderr().write_line("Invalid input.")?;
                     continue;
                 }
-                // try for bakfile by index
-                // let index: usize = match (n - 1).try_into() {
-                //     Ok(u) => u,
-                //     Err(_) => return Err(ExecFailReason::BadInput.into()),
-                // };
-                // let selection = bakfiles.iter().nth(index);
 
                 let mut selection: Option<&Bakfile> = None;
                 for bakfile in bakfiles.iter() {
@@ -533,7 +534,7 @@ fn disambiguate(
             }
             Err(_) => {
                 // try for a different option from above
-                let operation = input.chars().nth(0);
+                let operation = input.to_lowercase().chars().nth(0);
                 log::trace!(
                     "Input not a uint. Trying first unicode char... {}",
                     match operation {
@@ -620,5 +621,5 @@ fn run_disambiguate_op(
                         .replace("%f", bakfile.bakfile_path.to_str().unwrap()) // for Show operation
                         .replace("%new", bakfile.bakfile_path.to_str().unwrap()) // for Diff operation
                         .replace("%old", bakfile.original_path.to_str().unwrap());
-    call_command(command_string, &config, submatches.get_flag("escalate"))
+    call_command(command_string)
 }

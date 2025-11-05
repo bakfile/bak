@@ -1,6 +1,7 @@
 use log::trace;
 use std::fmt;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::rc::Rc;
 
 use directories::BaseDirs;
@@ -17,8 +18,6 @@ pub(crate) static DEFAULT_OPEN_CMD: &str =
 pub(crate) static DEFAULT_DIFF_CMD: &str = "diff";
 #[cfg(target_family = "unix")]
 pub(crate) static DEFAULT_CP_CMD: &str = "cp";
-#[cfg(target_family = "unix")]
-pub(crate) static DEFAULT_SUDO_CMD: &str = "pkexec --keep-cwd %c";
 
 #[cfg(target_os = "windows")]
 pub(crate) static DEFAULT_OPEN_CMD: &str = "start";
@@ -26,8 +25,6 @@ pub(crate) static DEFAULT_OPEN_CMD: &str = "start";
 pub(crate) static DEFAULT_DIFF_CMD: &str = "fd";
 #[cfg(target_os = "windows")]
 pub(crate) static DEFAULT_CP_CMD: &str = "copy";
-#[cfg(target_family = "windows")]
-pub(crate) static DEFAULT_SUDO_CMD: &str = "runas /user:Administrator \"%c\"";
 
 pub fn get_config() -> Rc<Config> {
     let config_path = Config::get_config_path().unwrap(); // Look for config file
@@ -64,7 +61,6 @@ pub struct Config {
     pub bak_cp_exec: Option<String>,
     pub bak_open_exec: String,
     pub bak_diff_exec: String,
-    pub sudo_command: String,
     pub bak_list_relative_paths: bool,
     pub bak_list_colors: bool,
     pub bak_list_diff: bool,
@@ -83,7 +79,6 @@ impl fmt::Display for Config {
             file copy command (built-in function if None): {:?}
             'bak open' command: {:?}
             'bak diff' command: {:?}
-            sudo command: {:?}
             display relative paths (false by default): {:?}
             colorize bak list: {:?}
             suppress confirmation prompts: {:?}
@@ -95,7 +90,6 @@ impl fmt::Display for Config {
             self.bak_cp_exec.clone().unwrap_or("None".into()),
             self.bak_open_exec,
             self.bak_diff_exec,
-            self.sudo_command,
             self.bak_list_relative_paths,
             self.bak_list_colors,
             self.bak_list_diff,
@@ -114,7 +108,6 @@ impl Config {
             bak_cp_exec: Some(DEFAULT_CP_CMD.to_string() + " %old %new"),
             bak_open_exec: DEFAULT_OPEN_CMD.to_string() + " %f",
             bak_diff_exec: DEFAULT_DIFF_CMD.to_string() + " %old %new",
-            sudo_command: DEFAULT_SUDO_CMD.to_string(),
             bak_list_relative_paths: false,
             bak_list_colors: true,
             bak_list_diff: false,
@@ -155,7 +148,6 @@ impl Config {
                 },
                 bak_open_exec: conf["bak_open_exec"].as_str().unwrap().to_string(),
                 bak_diff_exec: conf["bak_diff_exec"].as_str().unwrap().to_string(),
-                sudo_command: conf["sudo_command"].as_str().unwrap().to_string(),
                 bak_list_relative_paths: conf["bak_list_relative_paths"].as_bool().unwrap(),
                 bak_list_colors: conf["bak_list_colors"].as_bool().unwrap(),
                 bak_list_diff: conf["bak_list_diff"].as_bool().unwrap(),
@@ -244,14 +236,44 @@ impl Config {
         }
     }
 
-    pub fn get_config_path() -> anyhow::Result<PathBuf, SystemError> {
+    pub fn get_config_path() -> anyhow::Result<PathBuf> {
         let basedirs = match BaseDirs::new() {
             Some(basedirs) => basedirs,
             None => {
                 return Err(SystemError::BASE_DIRS_ERROR.into());
             }
         };
+        trace!("Getting config path...");
         let config_path = basedirs.config_dir().join(Path::new("bak.conf"));
+        trace!("Got config path: {}", config_path.to_string_lossy());
+        let config_path_str = config_path.to_str().unwrap();
+        if cfg!(unix) && config_path_str.contains("root") {
+            trace!("Root detected. Checking for sudolike conditions...");
+            let _actual_user = String::from_utf8(Command::new("logname").output()?.stdout)?;
+            let actual_user = _actual_user.strip_suffix('\n').unwrap();
+            if actual_user != "root" {
+                trace!("sudo detected. Falling back on actual user");
+                let pid = std::process::id();
+                let _process_name_bytes = Command::new("ps").args(["-p", &pid.to_string(), "-o", "comm="]).output()?.stdout;
+                let mut process_name = String::from_utf8(_process_name_bytes)?;
+                process_name = process_name.strip_suffix('\n').unwrap().to_string();
+                let run_command: String = process_name + " get-config";
+                let mut actual_config_cmd = Command::new("runuser");
+                actual_config_cmd.args(["-l",
+                                        &actual_user,
+                                        "-c",
+                                        // &_test_ps_name,
+                                        &run_command,
+                                        ]);
+                let _actual_config_path = actual_config_cmd.output()?.stdout;
+                let mut actual_config_path = str::from_utf8(&_actual_config_path)?;
+                actual_config_path = actual_config_path.strip_suffix("\n").unwrap();
+                return Ok(PathBuf::from(actual_config_path));
+                // return Err(anyhow::anyhow!(format!("{:#?}", actual_config_cmd)));
+                // return Err(anyhow::anyhow!(String::from_utf8(actual_config_path)?));
+                // return Err(anyhow::anyhow!(run_command))
+            }
+        }
         Ok(config_path)
     }
 }

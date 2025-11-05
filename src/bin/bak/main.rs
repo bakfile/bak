@@ -18,7 +18,7 @@ fn main() -> anyhow::Result<()> {
 
     let cli = cmd::bak();
     let matches = cli.get_matches();
-    log::trace!("comamnds successfully read"); // Will only print with RUST_LOG=trace as verbosity comes next
+    log::trace!("commands successfully read"); // Will only print with RUST_LOG=trace as verbosity comes next
 
     let config = bakfile::configuration::get_config(); // ...tune in
     log::trace!("bak config loaded");

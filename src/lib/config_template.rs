@@ -1,6 +1,3 @@
-extern crate directories;
-extern crate shellexpand;
-
 use anyhow::Result;
 
 use crate::config;
@@ -40,18 +37,10 @@ bak_open_exec = \"{bak_open_exec}\"
 # default: \"diff %old %new\"
 bak_diff_exec = \"{bak_diff_exec}\"
 
-# bak should never be run directly as superuser. Instead, if `bak down`
-# needs to copy a file to a restricted location, you should pass the
-# --sudo flag, which will cause `bak` to use this value for escalation.
-# %c will be replaced with the operation needing escalation
-# %q will be replaced with single quotes, required (for example) by pkexec
-# default: \"{default_sudo_command}\"
-sudo_command = \"{sudo_command}\"
-
-# default: \"cp %old %new\"
 # if this is commented out, bak will use a built-in copy function, which may
 # be more efficient for some operations, but which, because it is not managed by
 # your operating system, may be dangerous
+# default: \"cp %old %new\"
 bak_cp_exec = \"{bak_cp_exec}\"
 
 ###
@@ -80,8 +69,6 @@ bak_config_generated_by_library_version = \"{bakfile_version}\"
         bak_cp_exec = bak_cp_exec,
         bak_open_exec = i_config.bak_open_exec,
         bak_diff_exec = i_config.bak_diff_exec,
-        default_sudo_command = config::DEFAULT_SUDO_CMD.to_string(),
-        sudo_command = i_config.sudo_command,
         bak_list_relpaths = i_config.bak_list_relative_paths,
         bak_list_colors = i_config.bak_list_colors,
         bak_list_diff = i_config.bak_list_diff,
