@@ -13,7 +13,7 @@ use crate::util::SystemError;
 #[cfg(target_family = "unix")]
 pub(crate) static DEFAULT_OPEN_CMD: &str = 
     if cfg!(target_os = "macos") {"open"}
-    else {"vim"};
+    else {"cat"};
 #[cfg(target_family = "unix")]
 pub(crate) static DEFAULT_DIFF_CMD: &str = "diff";
 #[cfg(target_family = "unix")]
