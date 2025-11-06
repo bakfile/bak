@@ -14,6 +14,7 @@ use crate::util::SystemError;
 #[allow(nonstandard_style)]
 const FRESH_DB_COMMAND: &'static str =
     "CREATE TABLE if not exists bakfiles(
+        bakid INTEGER PRIMARY KEY AUTOINCREMENT,
         original_file,
         original_abspath,
         bakfile,
@@ -80,7 +81,7 @@ impl<'db> BakDBHandler<'db> {
 
     fn construct_bakfile_from_entry(&self, row: &Row) -> Result<Bakfile, rusqlite::Error> {
         // crash loudly and human_panic, because errors in the bakdb are catastrophic
-        let rowid: u64 = row.get(0)?;
+        let rowid: u64 = row.get("bakid")?;
         let filename: String = row.get("original_file")?;
         let _bakfile_path: String = row.get("bakfile")?;
         let bakfile_path = PathBuf::from(_bakfile_path);
@@ -130,8 +131,13 @@ impl<'db> BakDBHandler<'db> {
     pub fn create_entry(&self, bakfile: Bakfile) -> Result<()> {
         let out = self.conn.execute(
             "
-                INSERT INTO bakfiles VALUES
-                (?1, ?2, ?3, ?4, ?5, ?6)",
+                INSERT INTO bakfiles(original_file,
+                                    original_abspath,
+                                    bakfile,
+                                    date_created,
+                                    date_modified,
+                                    restored)
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
             params![
                 bakfile.filename.to_str(),
                 String::from(
