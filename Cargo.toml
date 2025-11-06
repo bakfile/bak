@@ -4,6 +4,7 @@ authors = ["ChanceNCounter <ChanceNCounter@icloud.com>"]
 repository = "https://github.com/bakfile/bak"
 version = "0.3.0" # tracks version of `bak` binary, not underlying `bakfile` library
 edition = "2021"
+cargo-flags = "-Zon-broken-pipe=kill"
 
 [[bin]]
 name = "bak"
@@ -13,9 +14,13 @@ path = "src/bin/bak/main.rs"
 bakfile = {path = "src/lib"}
 
 anyhow = "1.0.94"
-log = "0.4.22"
+chrono = "0.4.39"
 clap = { version = "4.5.4", features = ["cargo"] }
-semver = { version = "1.0.23", features = ["serde"] }
+comfy-table = { version = "7.1.4", default-features = false }
+console = "0.16.0"
+dialoguer = { version = "0.11.0", default-features = false, features = ["completion"] }
 env_logger = "0.11.5"
 human-panic = "2.0.2"
-chrono = "0.4.39"
+log = "0.4.22"
+semver = { version = "1.0.23", features = ["serde"] }
+shellexpand = "3.1.0"

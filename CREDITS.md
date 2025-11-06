@@ -5,6 +5,7 @@
 ChanceNCounter (https://github.com/ChanceNCounter)
 
 ## Additional credits
+Cam Blomquist (https://github.com/camblomquist) - Code review and consultation
 
 ## Upstream
 
@@ -12,16 +13,22 @@ ChanceNCounter (https://github.com/ChanceNCounter)
 
 ### MIT License
 
-[anyhow](https://crates.io/crate/anyhow)  
-[chrono](https://crates.io/crate/chrono)  
-[clap](https://crates.io/crate/clap)  
-[directories](https://crates.io/crate/directories)  
-[log](https://crates.io/crate/log)  
-[rusqlite](https://crates.io/crate/rusqlite)  
-[semver](https://crates.io/crate/semver)  
-[serde](https://crates.io/crate/serde)  
-[shellexpand](https://crates.io/crate/shellexpand)  
-[toml](https://crates.io/crate/toml)  
+[anyhow](https://crates.io/crates/anyhow)  
+[chrono](https://crates.io/crates/chrono)  
+[clap](https://crates.io/crates/clap)  
+[comfy-table](https://github.com/nukesor/comfy-table)  
+[console](https://github.com/console-rs/console)  
+[dialoguer](https://github.com/console-rs/dialoguer)  
+[directories](https://crates.io/crates/directories)  
+[env-logger](https://github.com/rust-cli/env_logger)
+[human-panic](https://crates.io/crates/human-panic)  
+[log](https://crates.io/crates/log)  
+[rusqlite](https://crates.io/crates/rusqlite)  
+[semver](https://crates.io/crates/semver)  
+[serde](https://crates.io/crates/serde)  
+[shellexpand](https://crates.io/crates/shellexpand)  
+[thiserror](https://github.com/dtolnay/thiserror)  
+[toml](https://crates.io/crates/toml)   
 
 ### Public domain
 
