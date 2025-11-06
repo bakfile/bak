@@ -20,7 +20,7 @@ fn main() -> anyhow::Result<()> {
     let matches = cli.get_matches();
     log::trace!("commands successfully read"); // Will only print with RUST_LOG=trace as verbosity comes next
 
-    let config = bakfile::configuration::get_config(); // ...tune in
+    let config = bakfile::configuration::get_config()?; // ...tune in
     log::trace!("bak config loaded");
     
     let verbosity = matches.get_count("verbose");

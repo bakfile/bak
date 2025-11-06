@@ -1,5 +1,5 @@
 #[allow(nonstandard_style)]
-pub const DB_SCHEMA_VERSION: i32 = 1;
+pub const DB_SCHEMA_VERSION: u32 = 1;
 
 const CRATE_VERSION: &str = clap::crate_version!();
 
