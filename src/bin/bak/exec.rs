@@ -278,8 +278,8 @@ pub(crate) enum DisambiguatedExecOperation {
 impl DisambiguatedExecOperation {
     fn as_str(&self) -> &'static str {
         match self {
-            DisambiguatedExecOperation::Diff => "to diff",
-            DisambiguatedExecOperation::Show => "to display",
+            DisambiguatedExecOperation::Diff => "diff",
+            DisambiguatedExecOperation::Show => "display",
             DisambiguatedExecOperation::Return => "",
         } //TODO bak up, down, etc
     }
@@ -473,9 +473,14 @@ fn disambiguate(
             options += ", [L]ist"
         }
         options += ", [C]ancel";
+        let operation_value = if operation == &DisambiguatedExecOperation::Return {
+            String::from("")
+        } else {
+            format!("to {} ", operation.as_str())
+        };
         format!(
-            "Select a bakfile {} by entering a number, or\n{}",
-            operation.as_str(),
+            "Select a bakfile {}by entering a number, or {}",
+            operation_value,
             options.as_str()
         )
     };
