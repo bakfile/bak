@@ -32,4 +32,4 @@ Cam Blomquist (https://github.com/camblomquist) - Code review and consultation
 
 ### Public domain
 
-Versions of `bak` may exist which, via `rusqlite`, bundle SQLite itself, a popular database engine written in the C programming language. SQLite is in the public domain. You probably don't need this version of `bak`, which may not currently exist, because SQLite is already installed on most Unix-like systems.
+Versions of `bak` exist which, via `rusqlite`, bundle SQLite itself, a popular database engine written in the C programming language. SQLite is in the public domain.
